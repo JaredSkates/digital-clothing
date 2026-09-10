@@ -1,6 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { Spacing } from "@/constants/theme";
+import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
@@ -25,6 +25,7 @@ export default function ImageUploader() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
+      aspect: [4, 3],
       quality: 1,
     });
 
@@ -39,12 +40,17 @@ export default function ImageUploader() {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 
     if (!permissionResult.granted) {
-      Alert.alert("Sorry, we need camera roll permissions to make this work!");
+      Alert.alert(
+        "Permission required",
+        "Permission to access the camera is required.",
+      );
       return;
     }
 
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
     });
 
     console.log(result);
@@ -55,50 +61,61 @@ export default function ImageUploader() {
   };
 
   return (
-    <SafeAreaView style={styles.screen}>
-      <ThemedView style={styles.imageContainer}>
-        {image ? (
-          <Image
-            source={{ uri: image }}
-            style={styles.image}
-            contentFit="cover"
-          />
-        ) : (
-          <ThemedView style={[styles.image, styles.placeholder]} />
-        )}
-      </ThemedView>
+    <ThemedView style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
+        <ThemedView style={styles.imageContainer}>
+          {image ? (
+            <Image
+              source={{ uri: image }}
+              style={styles.image}
+              contentFit="cover"
+            />
+          ) : (
+            <ThemedView style={[styles.image, styles.placeholder]} />
+          )}
+        </ThemedView>
 
-      <ThemedView style={styles.footer}>
-        <Pressable
-          style={({ pressed }) => pressed && styles.pressed}
-          onPress={selectImage}
-        >
-          <ThemedView type="primary" style={styles.button}>
-            <ThemedText type="small" themeColor="primaryText">
-              Pick from gallery
-            </ThemedText>
-          </ThemedView>
-        </Pressable>
-        <Pressable
-          style={({ pressed }) => pressed && styles.pressed}
-          onPress={takePhoto}
-        >
-          <ThemedView type="backgroundElement" style={styles.button}>
-            <ThemedText type="small">Take a photo</ThemedText>
-          </ThemedView>
-        </Pressable>
-      </ThemedView>
-    </SafeAreaView>
+        <ThemedView style={styles.footer}>
+          <Pressable
+            style={({ pressed }) => pressed && styles.pressed}
+            onPress={selectImage}
+          >
+            <ThemedView type="primary" style={styles.button}>
+              <ThemedText type="small" themeColor="primaryText">
+                Pick from gallery
+              </ThemedText>
+            </ThemedView>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => pressed && styles.pressed}
+            onPress={takePhoto}
+          >
+            <ThemedView type="backgroundElement" style={styles.button}>
+              <ThemedText type="small">Take a photo</ThemedText>
+            </ThemedView>
+          </Pressable>
+        </ThemedView>
+      </SafeAreaView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
+  container: {
     flex: 1,
-    justifyContent: "space-between",
+    justifyContent: "center",
+    flexDirection: "row",
+  },
+  safeArea: {
+    flex: 1,
+    paddingHorizontal: Spacing.four,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: Spacing.three,
+    paddingBottom: BottomTabInset + Spacing.three,
+    maxWidth: MaxContentWidth,
   },
   imageContainer: {
-    flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -112,7 +129,6 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
   },
   footer: {
-    paddingBottom: Spacing.four,
     paddingHorizontal: Spacing.three,
     gap: Spacing.two,
   },
@@ -120,6 +136,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two,
     alignItems: "center",
     borderRadius: Spacing.three,
+    minWidth: "100%",
   },
   pressed: {
     opacity: 0.7,
