@@ -19,7 +19,7 @@ export default function AppTabs() {
 
   const handleImagePress = () => {
     set_is_menu_open(false);
-    router.push("/upload");
+    router.push("/modal");
   };
 
   return (

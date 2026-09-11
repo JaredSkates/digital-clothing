@@ -1,10 +1,8 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
-import Ionicons from "@react-native-vector-icons/ionicons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, Pressable, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -12,7 +10,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/use-theme";
 
 export default function ImageUploader() {
-  const router = useRouter();
   const theme = useTheme();
   const [image, setImage] = useState<string | null>(null);
 
@@ -73,18 +70,6 @@ export default function ImageUploader() {
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.header}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.backButton,
-              pressed && styles.pressed,
-            ]}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back" size={24} color="#fff" />
-          </Pressable>
-        </ThemedView>
-
         <ThemedView style={styles.imageContainer}>
           {image ? (
             <Image
@@ -94,7 +79,11 @@ export default function ImageUploader() {
             />
           ) : (
             <ThemedView
-              style={[styles.image, styles.placeholder, { borderColor: theme.textSecondary }]}
+              style={[
+                styles.image,
+                styles.placeholder,
+                { borderColor: theme.textSecondary },
+              ]}
             />
           )}
         </ThemedView>
@@ -143,18 +132,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  header: {
-    alignSelf: "stretch",
-    alignItems: "flex-start",
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#334",
-    justifyContent: "center",
-    alignItems: "center",
-  },
   image: {
     width: 300,
     height: 300,
@@ -173,6 +150,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: Spacing.three,
     minWidth: "100%",
+    width: 200,
   },
   pressed: {
     opacity: 0.7,
