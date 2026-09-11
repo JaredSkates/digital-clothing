@@ -12,10 +12,8 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <AnimatedSplashOverlay />
       <Stack screenOptions={{ headerShown: false }}>
-        {/* (tabs) = the bottom tab bar (Home). upload = the screen that
-            pops up on top when you hit the + button. */}
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="upload" />
+        <Stack.Screen name="modal" options={{ presentation: "modal" }} />
       </Stack>
     </ThemeProvider>
   );
