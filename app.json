@@ -33,6 +33,7 @@
           "imageWidth": 76
         }
       ],
+      "expo-image-picker",
       "@react-native-vector-icons/ionicons"
     ],
     "experiments": {

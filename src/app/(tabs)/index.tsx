@@ -2,12 +2,15 @@ import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedView } from "@/components/themed-view";
+import WeatherCard from "@/components/weather-card";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 
 export default function HomeScreen() {
   return (
     <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}></SafeAreaView>
+      <SafeAreaView style={styles.safeArea}>
+        <WeatherCard status="" current_temp="" low_point="" high_point="" />
+      </SafeAreaView>
     </ThemedView>
   );
 }
