@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedView } from "@/components/themed-view";
 import WeatherCard from "@/components/weather-card";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
+import { useWeatherAPI } from "@/hooks/use-WeatherAPI";
 import { WeatherData } from "@/types/weather";
 
 export default function HomeScreen() {
@@ -19,20 +20,20 @@ export default function HomeScreen() {
       const { coords } = await Location.getCurrentPositionAsync({});
       const [place] = await Location.reverseGeocodeAsync(coords);
       // TODO: place the weather api hook here (input = coords)
-
+      const { temp, description, high, low, timeOfDay, id } = await useWeatherAPI(coords);
       const locationName = [place?.city, place?.region]
         .filter(Boolean)
         .join(", ");
       // TODO: split the icon field from the api and check if its day or night through "d" or "n"
-
+      
       setWeather({
-        temp: "",
-        status: "",
-        high: "",
-        low: "",
-        timeOfDay: "",
-        id: 0,
         locationName,
+        temp,
+        description,
+        high,
+        low,
+        timeOfDay,
+        id
       });
     }
 
