@@ -23,13 +23,15 @@ export default function HomeScreen() {
       const locationName = [place?.city, place?.region]
         .filter(Boolean)
         .join(", ");
+      // TODO: split the icon field from the api and check if its day or night through "d" or "n"
 
       setWeather({
         temp: "",
         status: "",
         high: "",
         low: "",
-        icon: "",
+        timeOfDay: "",
+        id: 0,
         locationName,
       });
     }

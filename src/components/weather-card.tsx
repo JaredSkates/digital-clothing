@@ -1,6 +1,7 @@
 import { WeatherData } from "@/types/weather";
-import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { StyleSheet, Text, View } from "react-native";
+import { getWeatherBg } from "./weather-gradients";
 
 type WeatherProps = {
   weather: WeatherData | null;
@@ -8,43 +9,52 @@ type WeatherProps = {
 
 export default function WeatherCard({ weather }: WeatherProps) {
   const dash = (value?: string) => value || "-";
+  const { Icon, gradient, overlay, iconColor, textColor, subTextColor } =
+    getWeatherBg(weather?.id, weather?.timeOfDay);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.locationText}>{dash(weather?.locationName)}</Text>
+    <LinearGradient colors={gradient} style={styles.container}>
+      <View
+        style={[
+          StyleSheet.absoluteFill,
+          { backgroundColor: overlay, borderRadius: 15 },
+        ]}
+      />
+      <Text style={[styles.locationText, { color: textColor }]}>
+        {dash(weather?.locationName)}
+      </Text>
       <View style={styles.contentRow}>
         <View style={styles.leftSide}>
-          {weather?.icon && (
-            <Image
-              source={{
-                uri: `https://openweathermap.org/img/wn/${weather.icon}@2x.png`,
-              }}
-              style={styles.icon}
-              contentFit="contain"
-            />
-          )}
-          <Text style={styles.tempText}>{dash(weather?.temp)}</Text>
-          <Text style={styles.text}>{dash(weather?.status)}</Text>
+          <Icon color={iconColor} />
+          <Text style={[styles.tempText, { color: textColor }]}>
+            {dash(weather?.temp)}
+          </Text>
+          <Text style={[styles.text, { color: subTextColor }]}>
+            {dash(weather?.status)}
+          </Text>
         </View>
         <View style={styles.rightSide}>
-          <Text style={styles.text}>High: {dash(weather?.high)}</Text>
-          <Text style={styles.text}>Low: {dash(weather?.low)}</Text>
+          <Text style={[styles.text, { color: subTextColor }]}>
+            High: {dash(weather?.high)}
+          </Text>
+          <Text style={[styles.text, { color: subTextColor }]}>
+            Low: {dash(weather?.low)}
+          </Text>
         </View>
       </View>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     alignSelf: "stretch",
-    backgroundColor: "rgba(5, 166, 252, 0.83)",
     gap: 8,
     padding: 16,
     borderRadius: 15,
+    overflow: "hidden",
   },
   locationText: {
-    color: "#fff",
     fontWeight: "bold",
     fontSize: 14,
   },
@@ -67,15 +77,9 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   text: {
-    color: "#fff",
     fontWeight: "bold",
   },
-  icon: {
-    width: 50,
-    height: 50,
-  },
   tempText: {
-    color: "#fff",
     fontWeight: "bold",
     fontSize: 30,
   },
