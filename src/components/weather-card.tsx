@@ -30,7 +30,7 @@ export default function WeatherCard({ weather }: WeatherProps) {
             {dash(weather?.temp)}
           </Text>
           <Text style={[styles.text, { color: subTextColor }]}>
-            {dash(weather?.status)}
+            {dash(weather?.description)}
           </Text>
         </View>
         <View style={styles.rightSide}>
