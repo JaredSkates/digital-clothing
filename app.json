@@ -34,6 +34,7 @@
         }
       ],
       "expo-image-picker",
+      "expo-location",
       "@react-native-vector-icons/ionicons"
     ],
     "experiments": {
