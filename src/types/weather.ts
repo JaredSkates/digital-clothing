@@ -7,3 +7,5 @@ export type WeatherData = {
   timeOfDay?: string;
   locationName: string;
 };
+
+export type WeatherInfo = Omit<WeatherData, "locationName">;
