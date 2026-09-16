@@ -8,7 +8,9 @@ type WeatherProps = {
 };
 
 export default function WeatherCard({ weather }: WeatherProps) {
-  const dash = (value?: string) => value || "-";
+  const dash = (value?: string | number) => value || "-";
+  const temp = (value?: string | number) =>
+    value == null ? "-" : `${Math.round(Number(value))}°`;
   const { Icon, gradient, overlay, iconColor, textColor, subTextColor } =
     getWeatherBg(weather?.id, weather?.timeOfDay);
 
@@ -27,7 +29,7 @@ export default function WeatherCard({ weather }: WeatherProps) {
         <View style={styles.leftSide}>
           <Icon color={iconColor} />
           <Text style={[styles.tempText, { color: textColor }]}>
-            {dash(weather?.temp)}
+            {temp(weather?.temp)}
           </Text>
           <Text style={[styles.text, { color: subTextColor }]}>
             {dash(weather?.description)}
@@ -35,10 +37,10 @@ export default function WeatherCard({ weather }: WeatherProps) {
         </View>
         <View style={styles.rightSide}>
           <Text style={[styles.text, { color: subTextColor }]}>
-            High: {dash(weather?.high)}
+            High: {temp(weather?.high)}
           </Text>
           <Text style={[styles.text, { color: subTextColor }]}>
-            Low: {dash(weather?.low)}
+            Low: {temp(weather?.low)}
           </Text>
         </View>
       </View>
