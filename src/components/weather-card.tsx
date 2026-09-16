@@ -7,9 +7,11 @@ type WeatherProps = {
 };
 
 export default function WeatherCard({ weather }: WeatherProps) {
+  const dash = (value?: string) => value || "-";
+
   return (
     <View style={styles.container}>
-      <Text style={styles.locationText}>{weather?.locationName}</Text>
+      <Text style={styles.locationText}>{dash(weather?.locationName)}</Text>
       <View style={styles.contentRow}>
         <View style={styles.leftSide}>
           {weather?.icon && (
@@ -21,12 +23,12 @@ export default function WeatherCard({ weather }: WeatherProps) {
               contentFit="contain"
             />
           )}
-          <Text style={styles.tempText}>{weather?.temp}</Text>
-          <Text style={styles.text}>{weather?.status}</Text>
+          <Text style={styles.tempText}>{dash(weather?.temp)}</Text>
+          <Text style={styles.text}>{dash(weather?.status)}</Text>
         </View>
         <View style={styles.rightSide}>
-          <Text style={styles.text}>High: {weather?.high}</Text>
-          <Text style={styles.text}>Low: {weather?.low}</Text>
+          <Text style={styles.text}>High: {dash(weather?.high)}</Text>
+          <Text style={styles.text}>Low: {dash(weather?.low)}</Text>
         </View>
       </View>
     </View>
@@ -37,8 +39,8 @@ const styles = StyleSheet.create({
   container: {
     alignSelf: "stretch",
     backgroundColor: "rgba(5, 166, 252, 0.83)",
-    gap: 10,
-    padding: 18,
+    gap: 8,
+    padding: 16,
     borderRadius: 15,
   },
   locationText: {
