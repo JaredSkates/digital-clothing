@@ -1,5 +1,5 @@
 import { WeatherData } from "@/types/weather";
-import Ionicons from "@react-native-vector-icons/ionicons";
+import { Image } from "expo-image";
 import { StyleSheet, Text, View } from "react-native";
 
 type WeatherProps = {
@@ -12,7 +12,15 @@ export default function WeatherCard({ weather }: WeatherProps) {
       <Text style={styles.locationText}>{weather?.locationName}</Text>
       <View style={styles.contentRow}>
         <View style={styles.leftSide}>
-          <Ionicons name="thunderstorm" size={25} style={styles.text} />
+          {weather?.icon && (
+            <Image
+              source={{
+                uri: `https://openweathermap.org/img/wn/${weather.icon}@2x.png`,
+              }}
+              style={styles.icon}
+              contentFit="contain"
+            />
+          )}
           <Text style={styles.tempText}>{weather?.temp}</Text>
           <Text style={styles.text}>{weather?.status}</Text>
         </View>
@@ -59,6 +67,10 @@ const styles = StyleSheet.create({
   text: {
     color: "#fff",
     fontWeight: "bold",
+  },
+  icon: {
+    width: 50,
+    height: 50,
   },
   tempText: {
     color: "#fff",

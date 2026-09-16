@@ -29,6 +29,7 @@ export default function HomeScreen() {
         status: "",
         high: "",
         low: "",
+        icon: "",
         locationName,
       });
     }
