@@ -10,15 +10,15 @@ import { ThemedView } from "./themed-view";
 export default function AppTabs() {
   const scheme = useColorScheme();
   const colors = Colors[scheme === "unspecified" ? "light" : scheme];
-  const [is_menu_open, set_is_menu_open] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const router = useRouter();
 
   const handleFABPress = () => {
-    set_is_menu_open(!is_menu_open);
+    setIsMenuOpen(!isMenuOpen);
   };
 
   const handleImagePress = () => {
-    set_is_menu_open(false);
+    setIsMenuOpen(false);
     router.push("/modal");
   };
 
@@ -49,13 +49,13 @@ export default function AppTabs() {
           onPress={handleFABPress}
         >
           <Ionicons
-            name={is_menu_open ? "close" : "add"}
+            name={isMenuOpen ? "close" : "add"}
             size={28}
             color="#fff"
           />
         </Pressable>
 
-        {is_menu_open && (
+        {isMenuOpen && (
           <>
             {/* Action Button 1 */}
             <Pressable
