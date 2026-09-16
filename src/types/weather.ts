@@ -1,8 +1,9 @@
 export type WeatherData = {
+  id?: number;
   temp: string;
   status: string;
   high: string;
   low: string;
-  icon?: string;
+  timeOfDay?: string;
   locationName: string;
 };
