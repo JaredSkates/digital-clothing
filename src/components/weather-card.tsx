@@ -1,14 +1,16 @@
 import { WeatherData } from "@/types/weather";
+import { getWeatherBg } from "@/utils/weather-helper";
 import { LinearGradient } from "expo-linear-gradient";
 import { StyleSheet, Text, View } from "react-native";
-import { getWeatherBg } from "./weather-gradients";
 
 type WeatherProps = {
   weather: WeatherData | null;
 };
 
 export default function WeatherCard({ weather }: WeatherProps) {
-  const dash = (value?: string) => value || "-";
+  const dash = (value?: string | number) => value || "-";
+  const temp = (value?: string | number) =>
+    value == null ? "-" : `${Math.round(Number(value))}°`;
   const { Icon, gradient, overlay, iconColor, textColor, subTextColor } =
     getWeatherBg(weather?.id, weather?.timeOfDay);
 
@@ -27,18 +29,18 @@ export default function WeatherCard({ weather }: WeatherProps) {
         <View style={styles.leftSide}>
           <Icon color={iconColor} />
           <Text style={[styles.tempText, { color: textColor }]}>
-            {dash(weather?.temp)}
+            {temp(weather?.temp)}
           </Text>
           <Text style={[styles.text, { color: subTextColor }]}>
-            {dash(weather?.status)}
+            {dash(weather?.description)}
           </Text>
         </View>
         <View style={styles.rightSide}>
           <Text style={[styles.text, { color: subTextColor }]}>
-            High: {dash(weather?.high)}
+            High: {temp(weather?.high)}
           </Text>
           <Text style={[styles.text, { color: subTextColor }]}>
-            Low: {dash(weather?.low)}
+            Low: {temp(weather?.low)}
           </Text>
         </View>
       </View>
@@ -51,6 +53,7 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
     gap: 8,
     padding: 16,
+    marginVertical: 10,
     borderRadius: 15,
     overflow: "hidden",
   },
