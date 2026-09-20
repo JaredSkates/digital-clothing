@@ -1,3 +1,4 @@
+import { WeatherMeta } from "@/types/weather";
 import {
   Cloud,
   CloudDrizzle,
@@ -6,7 +7,6 @@ import {
   CloudMoon,
   CloudRain,
   CloudSun,
-  LucideIcon,
   Moon,
   Snowflake,
   Sun,
@@ -17,7 +17,7 @@ import {
 export const GRADIENTS = {
   clearDay: ["#5fafff", "#2290ff"],
   clearNight: ["#131b3a", "#3c4d98"],
-  cloudyDay: ["#9AACC2", "#B9C6D6"],
+  cloudyDay: ["#75a7e3", "#c7e0ff"],
   cloudyNight: ["#080f1e", "#2a305a"],
   rainDay: ["#7C93AC", "#8FAAB8"],
   rainNight: ["#516d89", "#4A6584"],
@@ -26,23 +26,12 @@ export const GRADIENTS = {
   mist: ["#A9B8C4", "#73838f"],
 } as const;
 
-export type GradientColors = readonly [string, string, ...string[]];
-
 export const OVERLAY_WASH = "rgba(255,255,255,0.14)";
 export const OVERLAY_WASH_LIGHT = "rgba(255,255,255,0.25)"; // for already-pale gradients (snow, clouds)
 export const OVERLAY_WASH_DARK = "rgba(255,255,255,0.05)"; // for already-dark gradients (storm, clear night)
 const DEFAULT_TXT_COLOR = "rgba(255,255,255,0.95)";
 
-export interface WeatherMeta {
-  Icon: LucideIcon;
-  gradient: GradientColors;
-  overlay: string;
-  iconColor: string;
-  textColor: string;
-  subTextColor: string;
-}
-
-const STYLES = {
+export const STYLES = {
   storm: {
     Icon: CloudLightning,
     gradient: GRADIENTS.storm,
@@ -164,31 +153,3 @@ const STYLES = {
     subTextColor: "rgba(255,255,255,0.7)",
   },
 } satisfies Record<string, WeatherMeta>;
-
-export function getWeatherBg(id?: number, timeOfDay?: string): WeatherMeta {
-  const isNight = timeOfDay?.startsWith("n") ?? false;
-
-  if (!id) return STYLES.clearDay;
-  if (id >= 200 && id < 300) return STYLES.storm;
-  if (id >= 300 && id < 400)
-    return isNight ? STYLES.drizzleNight : STYLES.drizzleDay;
-  if (id >= 500 && id < 600)
-    return id === 511
-      ? STYLES.snow
-      : isNight
-        ? STYLES.rainNight
-        : STYLES.rainDay;
-  if (id >= 600 && id < 700) return STYLES.snow;
-  if (id >= 701 && id < 800) {
-    if (id === 781) return STYLES.tornado;
-    if (id === 771) return STYLES.wind;
-    return STYLES.fog;
-  }
-  if (id === 800) return isNight ? STYLES.clearNight : STYLES.clearDay;
-  if (id > 800 && id < 900) {
-    if (id === 801)
-      return isNight ? STYLES.fewCloudsNight : STYLES.fewCloudsDay;
-    return isNight ? STYLES.cloudyNight : STYLES.cloudyDay;
-  }
-  return isNight ? STYLES.clearNight : STYLES.clearDay;
-}

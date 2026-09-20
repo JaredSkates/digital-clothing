@@ -15,7 +15,7 @@ export default function HomeScreen() {
     longitude: number;
   } | null>(null);
   const [locationName, setLocationName] = useState("");
-  const { weather } = useWeather(coords);
+  const { weather } = useWeather(coords?.latitude, coords?.longitude);
 
   useEffect(() => {
     async function getLocation() {
