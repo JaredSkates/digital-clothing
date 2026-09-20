@@ -1,7 +1,7 @@
 import { WeatherData } from "@/types/weather";
+import { getWeatherBg } from "@/utils/weather-helper";
 import { LinearGradient } from "expo-linear-gradient";
 import { StyleSheet, Text, View } from "react-native";
-import { getWeatherBg } from "./weather-gradients";
 
 type WeatherProps = {
   weather: WeatherData | null;
@@ -53,6 +53,7 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
     gap: 8,
     padding: 16,
+    marginVertical: 10,
     borderRadius: 15,
     overflow: "hidden",
   },

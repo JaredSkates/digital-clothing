@@ -10,7 +10,7 @@ export async function fetchWeather(coords: {
   const response = await fetch(url);
   const data = await response.json();
 
-  if (!response.ok || data?.cod !== 200) {
+  if (!response.ok) {
     throw new Error(data?.message ?? "Weather data not found");
   }
 
