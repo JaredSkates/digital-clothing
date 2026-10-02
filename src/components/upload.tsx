@@ -1,19 +1,26 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
+import { useTheme } from "@/hooks/use-theme";
+import { Clothing, ClothingInput } from "@/types/clothing";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
 import { Alert, Pressable, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-import { useTheme } from "@/hooks/use-theme";
-import ClothingInfoSection from "./clothing-info-section";
+import ClothingForm from "./clothing-form";
 
 export default function ImageUploader() {
   const theme = useTheme();
   const [image, setImage] = useState<string | null>(null);
+
+  const saveItem = (formData: ClothingInput) => {
+    if (!image) return;
+    // TODO: no DB write yet
+    const clothing: Clothing = { ...formData, imgUri: image };
+    console.log(clothing);
+  };
 
   // Both pickers below end up calling setImage() with the file's URI.
   // That URI is the thing you'll want to send to your DB. It lives in the
@@ -117,7 +124,7 @@ export default function ImageUploader() {
           </Pressable>
         </ThemedView>
 
-        {image && <ClothingInfoSection />}
+        {image && <ClothingForm onSubmit={saveItem} />}
       </SafeAreaView>
     </ThemedView>
   );
