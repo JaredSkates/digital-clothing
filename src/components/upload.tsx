@@ -1,6 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
+import Ionicons from "@react-native-vector-icons/ionicons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
@@ -8,6 +9,7 @@ import { Alert, Pressable, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useTheme } from "@/hooks/use-theme";
+import ClothingInfoSection from "./clothing-info-section";
 
 export default function ImageUploader() {
   const theme = useTheme();
@@ -90,24 +92,32 @@ export default function ImageUploader() {
 
         <ThemedView style={styles.footer}>
           <Pressable
-            style={({ pressed }) => pressed && styles.pressed}
+            style={({ pressed }) => [styles.action, pressed && styles.pressed]}
             onPress={selectImage}
           >
-            <ThemedView type="primary" style={styles.button}>
+            <ThemedView type="primary" style={styles.actionInner}>
+              <Ionicons
+                name="images-outline"
+                size={18}
+                color={theme.primaryText}
+              />
               <ThemedText type="small" themeColor="primaryText">
-                Pick from gallery
+                Gallery
               </ThemedText>
             </ThemedView>
           </Pressable>
           <Pressable
-            style={({ pressed }) => pressed && styles.pressed}
+            style={({ pressed }) => [styles.action, pressed && styles.pressed]}
             onPress={takePhoto}
           >
-            <ThemedView type="backgroundElement" style={styles.button}>
-              <ThemedText type="small">Take a photo</ThemedText>
+            <ThemedView type="backgroundElement" style={styles.actionInner}>
+              <Ionicons name="camera-outline" size={18} color={theme.text} />
+              <ThemedText type="small">Camera</ThemedText>
             </ThemedView>
           </Pressable>
         </ThemedView>
+
+        {image && <ClothingInfoSection />}
       </SafeAreaView>
     </ThemedView>
   );
@@ -142,15 +152,19 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
   },
   footer: {
-    paddingHorizontal: Spacing.three,
+    flexDirection: "row",
     gap: Spacing.two,
   },
-  button: {
-    paddingVertical: Spacing.two,
+  action: {
+    flex: 1,
+  },
+  actionInner: {
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.two,
+    paddingVertical: Spacing.three,
     borderRadius: Spacing.three,
-    minWidth: "100%",
-    width: 200,
   },
   pressed: {
     opacity: 0.7,

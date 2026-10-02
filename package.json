@@ -3,7 +3,7 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "dependencies": {
-    "@expo/ui": "~57.0.18",
+    "@expo/ui": "~57.0.21",
     "@neondatabase/serverless": "^1.1.0",
     "@react-native-vector-icons/ionicons": "^13.1.4",
     "drizzle-orm": "^0.45.3",
