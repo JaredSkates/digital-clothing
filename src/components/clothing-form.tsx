@@ -24,26 +24,24 @@ export default function ClothingForm({ onSubmit }: ClothingFormProps) {
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedView style={styles.field}>
-        <ThemedText type="smallBold" themeColor="textSecondary">
-          Name
-        </ThemedText>
-        <TextInput
-          style={[
-            styles.input,
-            {
-              backgroundColor: theme.backgroundElement,
-              borderColor: theme.textSecondary,
-              color: theme.text,
-            },
-          ]}
-          placeholder="e.g. Navy wool blazer"
-          placeholderTextColor={theme.textSecondary}
-          autoCapitalize="words"
-          value={name}
-          onChangeText={setName}
-        />
-      </ThemedView>
+      <ThemedText type="smallBold" themeColor="textSecondary">
+        Name
+      </ThemedText>
+      <TextInput
+        style={[
+          styles.input,
+          {
+            backgroundColor: theme.backgroundElement,
+            borderColor: theme.textSecondary,
+            color: theme.text,
+          },
+        ]}
+        placeholder="e.g. Navy wool blazer"
+        placeholderTextColor={theme.textSecondary}
+        autoCapitalize="words"
+        value={name}
+        onChangeText={setName}
+      />
 
       <ThemedView style={styles.row}>
         <ThemedText type="smallBold" themeColor="textSecondary">
@@ -84,9 +82,6 @@ const styles = StyleSheet.create({
   container: {
     alignSelf: "stretch",
     gap: Spacing.three,
-  },
-  field: {
-    gap: Spacing.two,
   },
   row: {
     flexDirection: "row",
