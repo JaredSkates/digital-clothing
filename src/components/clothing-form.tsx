@@ -8,7 +8,6 @@ import { Host, Picker } from "@expo/ui";
 import { useState } from "react";
 import { Pressable, StyleSheet, TextInput } from "react-native";
 
-// imgUri is owned by the image picker in upload.tsx
 export default function ClothingForm({ onSubmit }: ClothingFormProps) {
   const theme = useTheme();
   const [name, setName] = useState("");

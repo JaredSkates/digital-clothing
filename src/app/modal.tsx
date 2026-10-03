@@ -24,6 +24,7 @@ export default function ModalScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      {/* exit button */}
       <Pressable
         style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}
         onPress={() => router.back()}
@@ -31,6 +32,7 @@ export default function ModalScreen() {
         <Ionicons name="close" size={28} color={theme.text} />
       </Pressable>
 
+      {/* content */}
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
           contentContainerStyle={styles.content}
