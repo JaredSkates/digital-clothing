@@ -20,7 +20,8 @@ export default function ImageUploader({
         <Image
           source={{ uri: image }}
           style={styles.image}
-          contentFit="cover"
+          contentFit="contain"
+          transition={200}
         />
       ) : (
         <ThemedView
@@ -60,11 +61,15 @@ export default function ImageUploader({
 const styles = StyleSheet.create({
   image: {
     width: "100%",
-    aspectRatio: 1,
+    height: undefined,
+    aspectRatio: undefined,
+    minHeight: 300,
+    maxHeight: 500,
     borderRadius: Spacing.three,
   },
   placeholder: {
     borderWidth: 2,
+    height: 300,
     borderStyle: "dashed",
   },
   buttons: {

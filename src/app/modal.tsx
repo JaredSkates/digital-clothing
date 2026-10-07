@@ -14,12 +14,12 @@ import { ClothingInput } from "@/types/clothing";
 export default function ModalScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const { image, selectImage, takePhoto } = useImagePicker();
+  const { imageURI, selectImage, takePhoto } = useImagePicker();
 
   const saveItem = (formData: ClothingInput) => {
-    if (!image) return;
+    if (!imageURI) return;
     // TODO: write to the DB
-    console.log({ ...formData, imgUri: image });
+    console.log({ ...formData, imgUri: imageURI });
   };
 
   return (
@@ -40,11 +40,11 @@ export default function ModalScreen() {
           automaticallyAdjustKeyboardInsets
         >
           <ImageUploader
-            image={image}
+            image={imageURI}
             onSelectImage={selectImage}
             onTakePhoto={takePhoto}
           />
-          {image && <ClothingForm onSubmit={saveItem} />}
+          {imageURI && <ClothingForm onSubmit={saveItem} />}
         </ScrollView>
       </SafeAreaView>
     </ThemedView>
