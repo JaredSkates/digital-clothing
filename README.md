@@ -10,6 +10,9 @@
 
    ```bash
    npx expo start
+
+   For IOS:
+   npx expo start --dev-client
    ```
 
 In the output, you'll find options to open the app in a

@@ -11,11 +11,6 @@
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.anonymous.digital-clothing"
     },
-    "expo-build-properties": {
-      "ios": {
-        "deploymentTarget": "17.0"
-      }
-    },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -51,7 +46,7 @@
       "expo-web-browser",
       "@clerk/expo",
       "expo-secure-store",
-      "expo-build-properties"
+      ["expo-build-properties", { "ios": { "deploymentTarget": "17.0" } }]
     ],
     "experiments": {
       "typedRoutes": true,
