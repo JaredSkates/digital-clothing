@@ -35,15 +35,9 @@ export default function ImageUploader({
 
       <ThemedView style={styles.buttons}>
         <Pressable style={styles.button} onPress={onSelectImage}>
-          <ThemedView type="primary" style={styles.buttonInner}>
-            <Ionicons
-              name="images-outline"
-              size={18}
-              color={theme.primaryText}
-            />
-            <ThemedText type="small" themeColor="primaryText">
-              Gallery
-            </ThemedText>
+          <ThemedView type="backgroundElement" style={styles.buttonInner}>
+            <Ionicons name="images-outline" size={18} color={theme.text} />
+            <ThemedText type="small">Gallery</ThemedText>
           </ThemedView>
         </Pressable>
 
