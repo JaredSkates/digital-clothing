@@ -3,7 +3,8 @@ import { useState } from "react";
 import { Alert } from "react-native";
 
 export function useImagePicker() {
-  const [imageURI, setImageURI] = useState<string | null>(null);
+  // Holds the local device file URI (e.g. file:///.../cache/img.jpg)
+  const [localImgUri, setLocalImgUri] = useState<string | null>(null);
 
   const selectImage = async () => {
     const permissionResult =
@@ -24,7 +25,7 @@ export function useImagePicker() {
     });
 
     if (!result.canceled) {
-      setImageURI(result.assets[0].uri);
+      setLocalImgUri(result.assets[0].uri);
     }
   };
 
@@ -45,12 +46,12 @@ export function useImagePicker() {
     });
 
     if (!result.canceled) {
-      setImageURI(result.assets[0].uri);
+      setLocalImgUri(result.assets[0].uri);
     }
   };
 
   return {
-    imageURI,
+    localImgUri,
     selectImage,
     takePhoto,
   };

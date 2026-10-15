@@ -4,7 +4,7 @@ import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedView } from "@/components/themed-view";
-import WeatherCard from "@/components/weather-card";
+import WeatherCard from "@/components/ui/weather-card";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { useWeather } from "@/hooks/use-weather";
 import { WeatherData } from "@/types/weather";
