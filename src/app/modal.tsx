@@ -1,25 +1,49 @@
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import ClothingForm from "@/components/clothing-form";
 import { ThemedView } from "@/components/themed-view";
 import ImageUploader from "@/components/upload";
+import { Category } from "@/constants/clothing";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { useImagePicker } from "@/hooks/use-img-picker";
 import { useTheme } from "@/hooks/use-theme";
-import { ClothingInput } from "@/types/clothing";
+import { NewClothing } from "@/lib/db/schema";
 
 export default function ModalScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const { imageURI, selectImage, takePhoto } = useImagePicker();
 
-  const saveItem = (formData: ClothingInput) => {
-    if (!imageURI) return;
-    // TODO: write to the DB
-    console.log({ ...formData, imgUri: imageURI });
+  // Hook handles the local image state completely
+  const { localImgUri, selectImage, takePhoto } = useImagePicker();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const saveItem = async (formValues: { name: string; category: Category }) => {
+    if (!localImgUri) return;
+
+    try {
+      setIsSubmitting(true);
+
+      // TODO: Upload localImgUri to S3 and get back the permanent public HTTPS URL
+      // const publicS3Url = await uploadToS3(localImgUri);
+      const publicS3Url = localImgUri; // Temporary placeholder until S3 is integrated
+
+      const payload: NewClothing = {
+        name: formValues.name,
+        category: formValues.category,
+        imgUri: publicS3Url,
+      };
+
+      console.log("Ready for API/DB:", payload);
+      router.back();
+    } catch (error) {
+      console.error("Save failed:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -40,11 +64,14 @@ export default function ModalScreen() {
           automaticallyAdjustKeyboardInsets
         >
           <ImageUploader
-            image={imageURI}
+            image={localImgUri}
             onSelectImage={selectImage}
             onTakePhoto={takePhoto}
           />
-          {imageURI && <ClothingForm onSubmit={saveItem} />}
+
+          {localImgUri && (
+            <ClothingForm onSubmit={saveItem} isSubmitting={isSubmitting} />
+          )}
         </ScrollView>
       </SafeAreaView>
     </ThemedView>
@@ -52,12 +79,8 @@ export default function ModalScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
+  container: { flex: 1 },
+  safeArea: { flex: 1 },
   content: {
     width: "100%",
     maxWidth: MaxContentWidth,
@@ -79,7 +102,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  pressed: {
-    opacity: 0.7,
-  },
+  pressed: { opacity: 0.7 },
 });

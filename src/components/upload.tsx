@@ -2,10 +2,15 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
-import { UploadProps } from "@/types/upload";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { Image } from "expo-image";
 import { Pressable, StyleSheet } from "react-native";
+
+export type UploadProps = {
+  image: string | null;
+  onSelectImage: () => void;
+  onTakePhoto: () => void;
+};
 
 export default function ImageUploader({
   image,

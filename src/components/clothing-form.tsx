@@ -3,26 +3,36 @@ import { ThemedView } from "@/components/themed-view";
 import { CATEGORIES, Category } from "@/constants/clothing";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
-import { ClothingFormProps } from "@/types/clothing";
 import { Host, Picker } from "@expo/ui";
 import { useState } from "react";
 import { Pressable, StyleSheet, TextInput } from "react-native";
 
-export default function ClothingForm({ onSubmit }: ClothingFormProps) {
+type ClothingFormProps = {
+  onSubmit: (values: { name: string; category: Category }) => void;
+  isSubmitting?: boolean;
+};
+
+export default function ClothingForm({
+  onSubmit,
+  isSubmitting,
+}: ClothingFormProps) {
   const theme = useTheme();
+
+  // Local form state (isolated from the database and image picker)
   const [name, setName] = useState("");
   const [category, setCategory] = useState<Category | "">("");
 
-  const trimmedName = name.trim();
-  const canSubmit = trimmedName !== "" && category !== "";
+  // Basic validation: ensure user typed a name and selected a category
+  const canSubmit = name.trim() !== "" && category !== "";
 
   const handleSubmit = () => {
     if (!canSubmit) return;
-    onSubmit({ name: trimmedName, category });
+    onSubmit({ name, category: category as Category });
   };
 
   return (
     <ThemedView style={styles.container}>
+      {/* Clothing Name Input */}
       <ThemedText type="smallBold" themeColor="textSecondary">
         Name
       </ThemedText>
@@ -42,22 +52,27 @@ export default function ClothingForm({ onSubmit }: ClothingFormProps) {
         onChangeText={setName}
       />
 
+      {/* Category Picker Dropdown */}
       <ThemedView style={styles.row}>
         <ThemedText type="smallBold" themeColor="textSecondary">
           Category
         </ThemedText>
         <Host matchContents ignoreSafeArea="all">
-          <Picker selectedValue={category} onValueChange={setCategory}>
+          <Picker
+            selectedValue={category}
+            onValueChange={(val) => setCategory(val as Category)}
+          >
             <Picker.Item label="Select a category" value="" />
-            {CATEGORIES.map((category) => (
-              <Picker.Item key={category} label={category} value={category} />
+            {CATEGORIES.map((cat) => (
+              <Picker.Item key={cat} label={cat} value={cat} />
             ))}
           </Picker>
         </Host>
       </ThemedView>
 
+      {/* Submit Action Button */}
       <Pressable
-        disabled={!canSubmit}
+        disabled={!canSubmit || isSubmitting}
         onPress={handleSubmit}
         style={({ pressed }) => pressed && styles.pressed}
       >
@@ -69,7 +84,7 @@ export default function ClothingForm({ onSubmit }: ClothingFormProps) {
             type="smallBold"
             themeColor={canSubmit ? "primaryText" : "textSecondary"}
           >
-            Save item
+            {isSubmitting ? "Saving..." : "Save item"}
           </ThemedText>
         </ThemedView>
       </Pressable>
@@ -78,10 +93,7 @@ export default function ClothingForm({ onSubmit }: ClothingFormProps) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    alignSelf: "stretch",
-    gap: Spacing.three,
-  },
+  container: { alignSelf: "stretch", gap: Spacing.three },
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -98,7 +110,5 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three,
     borderRadius: Spacing.three,
   },
-  pressed: {
-    opacity: 0.7,
-  },
+  pressed: { opacity: 0.7 },
 });
