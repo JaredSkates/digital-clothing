@@ -20,7 +20,8 @@ export default function ImageUploader({
         <Image
           source={{ uri: image }}
           style={styles.image}
-          contentFit="cover"
+          contentFit="contain"
+          transition={200}
         />
       ) : (
         <ThemedView
@@ -34,15 +35,9 @@ export default function ImageUploader({
 
       <ThemedView style={styles.buttons}>
         <Pressable style={styles.button} onPress={onSelectImage}>
-          <ThemedView type="primary" style={styles.buttonInner}>
-            <Ionicons
-              name="images-outline"
-              size={18}
-              color={theme.primaryText}
-            />
-            <ThemedText type="small" themeColor="primaryText">
-              Gallery
-            </ThemedText>
+          <ThemedView type="backgroundElement" style={styles.buttonInner}>
+            <Ionicons name="images-outline" size={18} color={theme.text} />
+            <ThemedText type="small">Gallery</ThemedText>
           </ThemedView>
         </Pressable>
 
@@ -60,11 +55,15 @@ export default function ImageUploader({
 const styles = StyleSheet.create({
   image: {
     width: "100%",
-    aspectRatio: 1,
+    height: undefined,
+    aspectRatio: undefined,
+    minHeight: 300,
+    maxHeight: 500,
     borderRadius: Spacing.three,
   },
   placeholder: {
     borderWidth: 2,
+    height: 300,
     borderStyle: "dashed",
   },
   buttons: {

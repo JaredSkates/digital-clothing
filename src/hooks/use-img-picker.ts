@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Alert } from "react-native";
 
 export function useImagePicker() {
-  const [image, setImage] = useState<string | null>(null);
+  const [imageURI, setImageURI] = useState<string | null>(null);
 
   const selectImage = async () => {
     const permissionResult =
@@ -19,13 +19,12 @@ export function useImagePicker() {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [1, 1],
+      allowsEditing: false,
       quality: 1,
     });
 
     if (!result.canceled) {
-      setImage(result.assets[0].uri);
+      setImageURI(result.assets[0].uri);
     }
   };
 
@@ -42,14 +41,17 @@ export function useImagePicker() {
 
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
-      aspect: [1, 1],
       quality: 1,
     });
 
     if (!result.canceled) {
-      setImage(result.assets[0].uri);
+      setImageURI(result.assets[0].uri);
     }
   };
 
-  return { image, selectImage, takePhoto };
+  return {
+    imageURI,
+    selectImage,
+    takePhoto,
+  };
 }
