@@ -1,69 +1,65 @@
+import { Category } from "@/constants/clothing";
+import { Outfit } from "@/types/outfits";
 import { WeatherReport } from "@/types/weather";
+import {
+  findTargetWarmth,
+  needsOuterwear,
+  pickRandom,
+  totalWarmth,
+} from "../../utils/outfit-helper";
 import { Clothing } from "../db/schema";
 
-// const COLD_POINT = 65;
-
-// function needsOuterwear(w: WeatherReport): boolean {
-//   const cold = w.feelsLike < COLD_POINT;
-//   const wet = w.precipitationMode !== "no";
-
-//   return cold || wet;
-// }
-
-type Outfit = { top: Clothing; bottom: Clothing };
-
-function splitByCategory(items: Clothing[]) {
-  const tops: Clothing[] = [];
-  const bottoms: Clothing[] = [];
+function splitByCategory(items: Clothing[]): Record<Category, Clothing[]> {
+  const categories: Record<Category, Clothing[]> = {
+    top: [],
+    bottom: [],
+    outerwear: [],
+    footwear: [],
+    accessory: [],
+  };
 
   for (const item of items) {
-    if (item.category === "top") tops.push(item);
-    else if (item.category === "bottom") bottoms.push(item);
-  }
-
-  return { tops, bottoms };
-}
-
-function totalWarmth(o: Outfit): number {
-  return (o.top.warmth ?? 0) + (o.bottom.warmth ?? 0);
-}
-
-function findTargetWarmth(feelsLike: number): number {
-  if (feelsLike >= 80) return 2;
-  if (feelsLike >= 65) return 4;
-  if (feelsLike >= 50) return 6;
-  if (feelsLike >= 35) return 8;
-
-  return 10;
-}
-
-function makeOutfits(tops: Clothing[], bottoms: Clothing[]) {
-  const outfits: Outfit[] = [];
-
-  for (const top of tops) {
-    for (const bottom of bottoms) {
-      outfits.push({ top, bottom });
+    if (!categories[item.category]) {
+      categories[item.category] = [];
     }
+    categories[item.category].push(item);
   }
 
-  return outfits;
+  return categories;
+}
+
+function makeOutfits(
+  closet: Record<Category, Clothing[]>,
+  mustWearOuterwear: boolean,
+): Outfit[] {
+  const outerwearOptions = mustWearOuterwear
+    ? closet.outerwear
+    : [undefined, ...closet.outerwear];
+
+  return closet.top.flatMap((top) =>
+    closet.bottom.flatMap((bottom) =>
+      outerwearOptions.map((outerwear) => ({ top, bottom, outerwear })),
+    ),
+  );
 }
 
 export function recommendBestOutfit(items: Clothing[], weather: WeatherReport) {
-  const { tops, bottoms } = splitByCategory(items);
+  const closet = splitByCategory(items);
 
-  // find every combinations
-  const allCombos = makeOutfits(tops, bottoms);
+  // required for an outfit
+  if (closet.top.length === 0 || closet.bottom.length === 0) return null;
+
+  // all possible outfits (top, bottom, outerwear?)
+  const allCombos = makeOutfits(closet, needsOuterwear(weather));
 
   // filter by context (weather only for now)
-  const target = findTargetWarmth(weather.feelsLike);
+  const targetWarmth = findTargetWarmth(weather.feelsLike);
   const eligibleCombos = allCombos.filter(
-    (o) => Math.abs(totalWarmth(o) - target) <= 1,
+    (outfit) => Math.abs(totalWarmth(outfit) - targetWarmth) <= 1,
   );
+
   if (eligibleCombos.length === 0) return null; // nothing to wear
 
-  // score outfits (later)
-
   // randomly pick from the survivors
-  return eligibleCombos[Math.floor(Math.random() * eligibleCombos.length)];
+  return pickRandom(eligibleCombos);
 }
