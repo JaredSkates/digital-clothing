@@ -64,7 +64,11 @@ export default function ClothingForm({
           >
             <Picker.Item label="Select a category" value="" />
             {CATEGORIES.map((cat) => (
-              <Picker.Item key={cat} label={cat} value={cat} />
+              <Picker.Item
+                key={cat.value}
+                label={cat.label}
+                value={cat.value}
+              />
             ))}
           </Picker>
         </Host>

@@ -1,7 +1,7 @@
 import { STYLES } from "@/constants/weather-gradients";
-import { WeatherMeta } from "@/types/weather";
+import { WeatherTheme } from "@/types/weather";
 
-export function getWeatherBg(id?: number, timeOfDay?: string): WeatherMeta {
+export function getWeatherBg(id?: number, timeOfDay?: string): WeatherTheme {
   const isNight = timeOfDay?.startsWith("n") ?? false;
 
   if (!id) return STYLES.clearDay;

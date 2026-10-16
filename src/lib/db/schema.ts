@@ -9,21 +9,54 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-// Enforce categories at database level matching the app constants
+// Enforce at database level matching the app constants
 export const categoryEnum = pgEnum("category", [
-  "Top",
-  "Bottom",
-  "Outerwear",
-  "Footwear",
-  "Accessory",
+  "top",
+  "bottom",
+  "outerwear",
+  "footwear",
+  "accessory",
+]);
+
+export const clothingFitEnum = pgEnum("clothing_fit", [
+  "slim",
+  "regular",
+  "relaxed",
+  "oversized",
+]);
+
+export const clothingMaterialEnum = pgEnum("clothing_material", [
+  "cotton",
+  "denim",
+  "linen",
+  "wool",
+  "polyester",
+  "leather",
+  "silk",
+  "knit",
+  "other",
+]);
+
+export const clothingFormalityEnum = pgEnum("clothing_formality", [
+  "casual",
+  "smart-casual",
+  "formal",
 ]);
 
 export const clothing = pgTable("clothing", {
-  // UUID for client-side generation and offline support
   id: uuid("id").primaryKey().defaultRandom(),
+
   name: text("name").notNull(),
   imgUri: text("img_uri").notNull(),
+
   category: categoryEnum("category").notNull(),
+  color: text("color"),
+  material: clothingMaterialEnum("material"),
+  fit: clothingFitEnum("fit"),
+  formality: clothingFormalityEnum("formality"),
+  size: text("size"),
+  warmth: integer("warmth"),
+
   wornCount: integer("worn_count").default(0).notNull(),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),

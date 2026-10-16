@@ -7,7 +7,7 @@ import { ThemedView } from "@/components/themed-view";
 import WeatherCard from "@/components/ui/weather-card";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { useWeather } from "@/hooks/use-weather";
-import { WeatherData } from "@/types/weather";
+import { WeatherReport } from "@/types/weather";
 
 export default function HomeScreen() {
   const [coords, setCoords] = useState<{
@@ -32,14 +32,14 @@ export default function HomeScreen() {
     getLocation();
   }, []);
 
-  const weatherData: WeatherData | null = weather
+  const weatherReport: WeatherReport | null = weather
     ? { ...weather, locationName }
     : null;
 
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <WeatherCard weather={weatherData} />
+        <WeatherCard weather={weatherReport} />
       </SafeAreaView>
     </ThemedView>
   );

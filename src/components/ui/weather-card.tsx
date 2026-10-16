@@ -1,10 +1,10 @@
-import { WeatherData } from "@/types/weather";
+import { WeatherReport } from "@/types/weather";
 import { getWeatherBg } from "@/utils/weather-helper";
 import { LinearGradient } from "expo-linear-gradient";
 import { StyleSheet, Text, View } from "react-native";
 
 type WeatherProps = {
-  weather: WeatherData | null;
+  weather: WeatherReport | null;
 };
 
 export default function WeatherCard({ weather }: WeatherProps) {

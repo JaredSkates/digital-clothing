@@ -1,18 +1,20 @@
 import { LucideIcon } from "lucide-react-native";
 
-export type WeatherData = {
+export type WeatherReport = {
   id?: number;
   temp: number;
+  feelsLike: number;
   description: string;
   high: number;
   low: number;
+  precipitationMode: string;
   timeOfDay?: string;
   locationName: string;
 };
 
-export type WeatherInfo = Omit<WeatherData, "locationName">;
+export type ForecastDetails = Omit<WeatherReport, "locationName">;
 
-export interface WeatherMeta {
+export interface WeatherTheme {
   Icon: LucideIcon;
   gradient: GradientColors;
   overlay: string;
