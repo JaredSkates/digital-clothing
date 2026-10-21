@@ -1,4 +1,5 @@
 // db/schema.ts
+import type { SubCategory } from "../../constants/closet-item";
 import {
   integer,
   pgEnum,
@@ -18,14 +19,14 @@ export const categoryEnum = pgEnum("category", [
   "accessory",
 ]);
 
-export const clothingFitEnum = pgEnum("clothing_fit", [
+export const closetItemFitEnum = pgEnum("closet_item_fit", [
   "slim",
   "regular",
   "relaxed",
   "oversized",
 ]);
 
-export const clothingMaterialEnum = pgEnum("clothing_material", [
+export const closetItemMaterialEnum = pgEnum("closet_item_material", [
   "cotton",
   "denim",
   "linen",
@@ -37,23 +38,24 @@ export const clothingMaterialEnum = pgEnum("clothing_material", [
   "other",
 ]);
 
-export const clothingFormalityEnum = pgEnum("clothing_formality", [
+export const closetItemFormalityEnum = pgEnum("closet_item_formality", [
   "casual",
   "smart-casual",
   "formal",
 ]);
 
-export const clothing = pgTable("clothing", {
+export const closetItem = pgTable("closetItem", {
   id: uuid("id").primaryKey().defaultRandom(),
 
   name: text("name").notNull(),
   imgUri: text("img_uri").notNull(),
 
   category: categoryEnum("category").notNull(),
+  subCategory: text("sub_category").$type<SubCategory>(),
   color: text("color"),
-  material: clothingMaterialEnum("material"),
-  fit: clothingFitEnum("fit"),
-  formality: clothingFormalityEnum("formality"),
+  material: closetItemMaterialEnum("material"),
+  fit: closetItemFitEnum("fit"),
+  formality: closetItemFormalityEnum("formality"),
   size: text("size"),
   warmth: integer("warmth"),
 
@@ -69,20 +71,20 @@ export const tags = pgTable("tags", {
   tagName: text("tag_name").notNull().unique(),
 });
 
-export const clothingTags = pgTable(
-  "clothing_tags",
+export const closetItemTags = pgTable(
+  "closetItem_tags",
   {
-    clothingId: uuid("clothing_id")
+    closetItemId: uuid("closetItem_id")
       .notNull()
-      .references(() => clothing.id, { onDelete: "cascade" }),
+      .references(() => closetItem.id, { onDelete: "cascade" }),
     tagId: uuid("tag_id")
       .notNull()
       .references(() => tags.id, { onDelete: "cascade" }),
   },
   // Return an array instead of an object to clear the deprecation error
-  (table) => [primaryKey({ columns: [table.clothingId, table.tagId] })],
+  (table) => [primaryKey({ columns: [table.closetItemId, table.tagId] })],
 );
 
 // inferred types to eliminate type drift
-export type Clothing = typeof clothing.$inferSelect;
-export type NewClothing = typeof clothing.$inferInsert;
+export type ClosetItem = typeof closetItem.$inferSelect;
+export type NewClosetItem = typeof closetItem.$inferInsert;

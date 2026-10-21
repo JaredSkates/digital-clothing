@@ -7,11 +7,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import ClothingForm from "@/components/clothing-form";
 import { ThemedView } from "@/components/themed-view";
 import ImageUploader from "@/components/upload";
-import { Category } from "@/constants/clothing";
+import { Category, SubCategory } from "@/constants/closet-item";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { useImagePicker } from "@/hooks/use-img-picker";
 import { useTheme } from "@/hooks/use-theme";
-import { NewClothing } from "@/lib/db/schema";
+import { NewClosetItem } from "@/lib/db/schema";
 
 export default function ModalScreen() {
   const router = useRouter();
@@ -21,7 +21,11 @@ export default function ModalScreen() {
   const { localImgUri, selectImage, takePhoto } = useImagePicker();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const saveItem = async (formValues: { name: string; category: Category }) => {
+  const saveItem = async (formValues: {
+    name: string;
+    category: Category;
+    subCategory: SubCategory;
+  }) => {
     if (!localImgUri) return;
 
     try {
@@ -31,9 +35,10 @@ export default function ModalScreen() {
       // const publicS3Url = await uploadToS3(localImgUri);
       const publicS3Url = localImgUri; // Temporary placeholder until S3 is integrated
 
-      const payload: NewClothing = {
+      const payload: NewClosetItem = {
         name: formValues.name,
         category: formValues.category,
+        subCategory: formValues.subCategory,
         imgUri: publicS3Url,
       };
 
