@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 
 import { fetchWeather } from "@/services/api-weather";
-import { WeatherInfo } from "@/types/weather";
+import { ForecastDetails } from "@/types/weather";
 
 export function useWeather(latitude?: number, longitude?: number) {
-  const [weather, setWeather] = useState<WeatherInfo | null>(null);
+  const [weather, setWeather] = useState<ForecastDetails | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

@@ -1,4 +1,4 @@
-import { WeatherMeta } from "@/types/weather";
+import { WeatherTheme } from "@/types/weather";
 import {
   Cloud,
   CloudDrizzle,
@@ -152,4 +152,4 @@ export const STYLES = {
     textColor: DEFAULT_TXT_COLOR,
     subTextColor: "rgba(255,255,255,0.7)",
   },
-} satisfies Record<string, WeatherMeta>;
+} satisfies Record<string, WeatherTheme>;
