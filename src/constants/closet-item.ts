@@ -41,19 +41,20 @@ export const SUB_CATEGORIES = {
   ],
 } as const;
 
-export type SubCategory =
-  (typeof SUB_CATEGORIES)[keyof typeof SUB_CATEGORIES][number]["value"];
+export type SubCategory = (typeof SUB_CATEGORIES)[Category][number]["value"];
 
-// 1. Define the Occasion shape explicitly
-export type Occasion = {
-  readonly value: string;
-  readonly label: string;
-  readonly preferredFormalities: readonly string[];
-  readonly excludedSubCategories: readonly SubCategory[];
+export const FORMALITIES = ["casual", "smart-casual", "formal"] as const;
+
+export type Formality = (typeof FORMALITIES)[number];
+
+type OccasionDefinition = {
+  value: string;
+  label: string;
+  preferredFormalities: readonly Formality[];
+  excludedSubCategories: readonly SubCategory[];
 };
 
-// 2. Annotate the array so empty arrays are typed as SubCategory[] instead of never[]
-export const OCCASIONS: readonly Occasion[] = [
+export const OCCASIONS = [
   {
     value: "casual",
     label: "Casual",
@@ -63,7 +64,7 @@ export const OCCASIONS: readonly Occasion[] = [
   {
     value: "school",
     label: "School",
-    preferredFormalities: ["casual", "casual-formal"],
+    preferredFormalities: ["casual", "smart-casual"],
     excludedSubCategories: [],
   },
   {
@@ -90,4 +91,7 @@ export const OCCASIONS: readonly Occasion[] = [
     preferredFormalities: ["casual"],
     excludedSubCategories: [],
   },
-];
+] as const satisfies readonly OccasionDefinition[];
+
+export type OccasionValue = (typeof OCCASIONS)[number]["value"];
+export type Occasion = (typeof OCCASIONS)[number];

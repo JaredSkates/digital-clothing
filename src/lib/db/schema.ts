@@ -1,5 +1,4 @@
 // db/schema.ts
-import type { SubCategory } from "../../constants/closet-item";
 import {
   integer,
   pgEnum,
@@ -9,8 +8,16 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
+import {
+  FORMALITIES,
+  type OccasionValue,
+  type SubCategory,
+} from "../../constants/closet-item";
 
-// Enforce at database level matching the app constants
+// ==========================================
+// 1. Enums
+// ==========================================
+
 export const categoryEnum = pgEnum("category", [
   "top",
   "bottom",
@@ -31,20 +38,21 @@ export const closetItemMaterialEnum = pgEnum("closet_item_material", [
   "denim",
   "linen",
   "wool",
-  "polyester",
   "leather",
-  "silk",
-  "knit",
+  "synthetic",
   "other",
 ]);
 
-export const closetItemFormalityEnum = pgEnum("closet_item_formality", [
-  "casual",
-  "smart-casual",
-  "formal",
-]);
+export const closetItemFormalityEnum = pgEnum(
+  "closet_item_formality",
+  FORMALITIES,
+);
 
-export const closetItem = pgTable("closetItem", {
+// ==========================================
+// 2. Core Tables
+// ==========================================
+
+export const ClosetItem = pgTable("ClosetItem", {
   id: uuid("id").primaryKey().defaultRandom(),
 
   name: text("name").notNull(),
@@ -66,25 +74,59 @@ export const closetItem = pgTable("closetItem", {
   deletedAt: timestamp("deleted_at"),
 });
 
-export const tags = pgTable("tags", {
+export const SavedOutfit = pgTable("SavedOutfit", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull().unique(),
+  occasion: text("occasion").$type<OccasionValue>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const tags = pgTable("Tags", {
   id: uuid("tag_id").primaryKey().defaultRandom(),
   tagName: text("tag_name").notNull().unique(),
 });
 
-export const closetItemTags = pgTable(
-  "closetItem_tags",
+// ==========================================
+// 3. Relation Tables
+// ==========================================
+
+export const SavedOutfitItem = pgTable(
+  "SavedOutfitItem",
   {
-    closetItemId: uuid("closetItem_id")
+    SavedOutfitId: uuid("saved_outfit_id")
       .notNull()
-      .references(() => closetItem.id, { onDelete: "cascade" }),
+      .references(() => SavedOutfit.id, { onDelete: "cascade" }),
+    ClosetItemId: uuid("closet_item_id")
+      .notNull()
+      .references(() => ClosetItem.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.SavedOutfitId, table.ClosetItemId] }),
+  ],
+);
+
+export const closetItemTags = pgTable(
+  "ClosetItemTags",
+  {
+    closetItemId: uuid("closet_item_id")
+      .notNull()
+      .references(() => ClosetItem.id, { onDelete: "cascade" }),
     tagId: uuid("tag_id")
       .notNull()
       .references(() => tags.id, { onDelete: "cascade" }),
   },
-  // Return an array instead of an object to clear the deprecation error
   (table) => [primaryKey({ columns: [table.closetItemId, table.tagId] })],
 );
 
-// inferred types to eliminate type drift
-export type ClosetItem = typeof closetItem.$inferSelect;
-export type NewClosetItem = typeof closetItem.$inferInsert;
+// ==========================================
+// 4. Inferred Types
+// ==========================================
+
+export type ClosetItemType = typeof ClosetItem.$inferSelect;
+export type NewClosetItemType = typeof ClosetItem.$inferInsert;
+
+export type SavedOutfitType = typeof SavedOutfit.$inferSelect;
+export type NewSavedOutfitType = typeof SavedOutfit.$inferInsert;
+
+export type TagType = typeof tags.$inferSelect;
+export type NewTagType = typeof tags.$inferInsert;

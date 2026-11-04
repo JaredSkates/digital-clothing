@@ -1,9 +1,9 @@
-import { ClosetItem } from "@/lib/db/schema";
+import type { ClosetItemType } from "@/lib/db/schema";
 
 export type Outfit = {
-  top: ClosetItem;
-  bottom: ClosetItem;
-  outerwear?: ClosetItem;
-  shoes?: ClosetItem;
-  accessory?: ClosetItem;
+  top: ClosetItemType;
+  bottom: ClosetItemType;
+  outerwear?: ClosetItemType;
+  shoes?: ClosetItemType;
+  accessory?: ClosetItemType;
 };

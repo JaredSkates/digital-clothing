@@ -11,7 +11,7 @@ import { Category, SubCategory } from "@/constants/closet-item";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { useImagePicker } from "@/hooks/use-img-picker";
 import { useTheme } from "@/hooks/use-theme";
-import { NewClosetItem } from "@/lib/db/schema";
+import { NewClosetItemType } from "@/lib/db/schema";
 
 export default function ModalScreen() {
   const router = useRouter();
@@ -35,7 +35,7 @@ export default function ModalScreen() {
       // const publicS3Url = await uploadToS3(localImgUri);
       const publicS3Url = localImgUri; // Temporary placeholder until S3 is integrated
 
-      const payload: NewClosetItem = {
+      const payload: NewClosetItemType = {
         name: formValues.name,
         category: formValues.category,
         subCategory: formValues.subCategory,
