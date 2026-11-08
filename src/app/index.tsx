@@ -11,6 +11,7 @@ import {
   useColorScheme,
   View,
 } from 'react-native'
+import SignIn from './api/sign-in/sign-in'
 
 const palette = {
   light: {
@@ -45,18 +46,12 @@ export default function MainScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.foreground }]}>Welcome</Text>
+        <Text style={[styles.title, { color: colors.foreground }]}>Welcome, To Digital Clothing</Text>
         {isSignedIn && <UserButton />}
       </View>
 
       {isSignedIn ? (
-        <View style={[styles.profileCard, { backgroundColor: colors.card }]}>
-          {user?.imageUrl && <Image source={{ uri: user.imageUrl }} style={styles.avatar} />}
-          <Text style={[styles.email, { color: colors.mutedForeground }]}>
-            {user?.primaryEmailAddress?.emailAddress ?? user?.id}
-          </Text>
-        </View>
-      ) : (
+        <SignIn  user={user} styles={styles} colors={colors}/> ) : (
         <Button title="Sign in" onPress={() => setIsAuthOpen(true)} />
       )}
 
@@ -91,7 +86,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   title: {
-    fontSize: 28,
+    width: 250,
+    fontSize: 27,
     fontWeight: 'bold',
   },
   profileCard: {
