@@ -1,108 +1,54 @@
-import { useAuth, useUser } from '@clerk/expo'
-import { AuthView, UserButton } from '@clerk/expo/native'
-import { useState } from 'react'
-import {
-  ActivityIndicator,
-  Button,
-  Image,
-  Modal,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native'
-import SignIn from './api/sign-in/sign-in'
+import { useAuth } from "@clerk/expo";
+import { Redirect } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect } from "react";
+import { ActivityIndicator, StyleSheet } from "react-native";
 
-const palette = {
-  light: {
-    background: '#FFFFFF',
-    card: '#F1F5F9',
-    foreground: '#0F172A',
-    mutedForeground: '#64748B',
-  },
-  dark: {
-    background: '#0F172A',
-    card: '#1E293B',
-    foreground: '#F8FAFC',
-    mutedForeground: '#CBD5E1',
-  },
-}
+import { ThemedView } from "@/components/themed-view";
+import { useTheme } from "@/hooks/use-theme";
 
-export default function MainScreen() {
-  const { isSignedIn, isLoaded } = useAuth({ treatPendingAsSignedOut: false })
-  const { user } = useUser()
-  const [isAuthOpen, setIsAuthOpen] = useState(false)
-  const colorScheme = useColorScheme()
-  const colors = palette[colorScheme === 'dark' ? 'dark' : 'light']
+/**
+ * Thin auth gate (the app's entry route).
+ *
+ * While Clerk resolves auth state (`!isLoaded`), it keeps the native splash up
+ * (it was held open in the root layout via `preventAutoHideAsync`) and renders
+ * a themed loading view. Once auth state is known, it hides the native splash
+ * and redirects: signed-in users to the app tabs, signed-out users to sign-in.
+ *
+ * Route groups are invisible in the URL, so `(app)/(tabs)` and `(auth)/sign-in`
+ * resolve to `/` and `/sign-in`; the group-qualified hrefs below are accepted
+ * by the typed routes. The component re-renders when `isSignedIn` flips, so a
+ * sign-in/out transition re-evaluates the redirect to the matching group.
+ *
+ * This screen contains no authentication UI of its own.
+ */
+export default function AuthGate() {
+  const { isLoaded, isSignedIn } = useAuth();
+  const theme = useTheme();
+
+  useEffect(() => {
+    // Only release the native splash once auth state has resolved so the user
+    // never sees a flash of the wrong screen.
+    if (isLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [isLoaded]);
 
   if (!isLoaded) {
     return (
-      <View style={[styles.centered, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" />
-      </View>
-    )
+      <ThemedView style={styles.centered}>
+        <ActivityIndicator size="large" color={theme.primary} />
+      </ThemedView>
+    );
   }
 
-  return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.foreground }]}>Welcome, To Digital Clothing</Text>
-        {isSignedIn && <UserButton />}
-      </View>
-
-      {isSignedIn ? (
-        <SignIn  user={user} styles={styles} colors={colors}/> ) : (
-        <Button title="Sign in" onPress={() => setIsAuthOpen(true)} />
-      )}
-
-      <Modal
-        animationType="slide"
-        visible={isAuthOpen}
-        presentationStyle="pageSheet"
-        onRequestClose={() => setIsAuthOpen(false)}
-      >
-        <AuthView onDismiss={() => setIsAuthOpen(false)} />
-      </Modal>
-    </View>
-  )
+  return <Redirect href={isSignedIn ? "/(app)/(tabs)" : "/(auth)/sign-in"} />;
 }
 
 const styles = StyleSheet.create({
   centered: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  container: {
-    flex: 1,
-    padding: 20,
-    paddingTop: 60,
-    gap: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  title: {
-    width: 250,
-    fontSize: 27,
-    fontWeight: 'bold',
-  },
-  profileCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    gap: 12,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  email: {
-    fontSize: 14,
-  },
-})
+});

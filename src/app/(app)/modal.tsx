@@ -1,25 +1,59 @@
+import { useAuth } from "@clerk/expo";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import ClothingForm from "@/components/clothing-form";
+import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import ImageUploader from "@/components/upload";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { useImagePicker } from "@/hooks/use-img-picker";
 import { useTheme } from "@/hooks/use-theme";
+import {
+    createClothing,
+    isDuplicateClothingError,
+} from "@/services/clothing-service";
 import { ClothingInput } from "@/types/clothing";
 
 export default function ModalScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const { userId } = useAuth();
   const { image, selectImage, takePhoto } = useImagePicker();
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const saveItem = (formData: ClothingInput) => {
-    if (!image) return;
-    // TODO: write to the DB
-    console.log({ ...formData, imgUri: image });
+  const saveItem = async (formData: ClothingInput) => {
+    if (!image || saving) return;
+
+    // The (app) group guard guarantees a signed-in user, but defend anyway.
+    if (!userId) {
+      setError("Couldn't save this item. Please try again.");
+      return;
+    }
+
+    setError(null);
+    setSaving(true);
+    try {
+      await createClothing({
+        userId,
+        name: formData.name,
+        category: formData.category,
+        imgUri: image,
+      });
+      router.back();
+    } catch (err) {
+      if (isDuplicateClothingError(err)) {
+        setError("You've already added this image.");
+      } else {
+        // The service already logs the underlying detail.
+        setError("Couldn't save this item. Please try again.");
+      }
+      setSaving(false);
+    }
   };
 
   return (
@@ -45,6 +79,11 @@ export default function ModalScreen() {
             onTakePhoto={takePhoto}
           />
           {image && <ClothingForm onSubmit={saveItem} />}
+          {error && (
+            <ThemedText type="small" themeColor="textSecondary">
+              {error}
+            </ThemedText>
+          )}
         </ScrollView>
       </SafeAreaView>
     </ThemedView>
