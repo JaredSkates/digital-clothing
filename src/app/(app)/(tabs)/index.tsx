@@ -4,6 +4,7 @@ import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedView } from "@/components/themed-view";
+import SignOutButton from "@/components/sign-out-button";
 import WeatherCard from "@/components/weather-card";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { useWeather } from "@/hooks/use-weather";
@@ -40,6 +41,7 @@ export default function HomeScreen() {
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <WeatherCard weather={weatherData} />
+        <SignOutButton />
       </SafeAreaView>
     </ThemedView>
   );
