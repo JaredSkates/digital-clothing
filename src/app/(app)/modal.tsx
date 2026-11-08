@@ -12,16 +12,13 @@ import ImageUploader from "@/components/upload";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { useImagePicker } from "@/hooks/use-img-picker";
 import { useTheme } from "@/hooks/use-theme";
-import {
-    createClothing,
-    isDuplicateClothingError,
-} from "@/services/clothing-service";
+import { isDuplicateApiError, postClothing } from "@/lib/api";
 import { ClothingInput } from "@/types/clothing";
 
 export default function ModalScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const { userId } = useAuth();
+  const { getToken } = useAuth();
   const { image, selectImage, takePhoto } = useImagePicker();
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -29,27 +26,22 @@ export default function ModalScreen() {
   const saveItem = async (formData: ClothingInput) => {
     if (!image || saving) return;
 
-    // The (app) group guard guarantees a signed-in user, but defend anyway.
-    if (!userId) {
-      setError("Couldn't save this item. Please try again.");
-      return;
-    }
-
     setError(null);
     setSaving(true);
     try {
-      await createClothing({
-        userId,
+      // The server derives the userId from the verified Clerk token — the
+      // client never supplies it.
+      await postClothing(getToken, {
         name: formData.name,
         category: formData.category,
         imgUri: image,
       });
       router.back();
     } catch (err) {
-      if (isDuplicateClothingError(err)) {
+      if (isDuplicateApiError(err)) {
         setError("You've already added this image.");
       } else {
-        // The service already logs the underlying detail.
+        // Any other failure (auth/generic) — keep the modal open.
         setError("Couldn't save this item. Please try again.");
       }
       setSaving(false);
