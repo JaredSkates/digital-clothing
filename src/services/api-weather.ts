@@ -26,13 +26,21 @@ export async function fetchWeather(coords: {
   const isPrecipitation = rainVolume > 0 || snowVolume > 0;
 
   return {
+    id: weatherInfo.id,
     temp: main.temp,
     feelsLike: main.feels_like ?? main.temp,
     description: weatherInfo.description,
     high: main.temp_max ?? main.temp,
     low: main.temp_min ?? main.temp,
-    precipitationMode: isPrecipitation ? weatherInfo.main : "no",
+
+    precipitationMode: isPrecipitation ? weatherInfo.main.toLowerCase() : "no",
+
+    rainVolume,
+    snowVolume,
+    humidity: main.humidity,
+    windSpeed: data.wind?.speed ?? 0,
+    cloudiness: data.clouds?.all ?? 0,
+
     timeOfDay: weatherInfo.icon?.includes("d") ? "day" : "night",
-    id: weatherInfo.id,
   };
 }

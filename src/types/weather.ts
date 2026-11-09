@@ -8,7 +8,12 @@ export type WeatherReport = {
   high: number;
   low: number;
   precipitationMode: string;
-  timeOfDay?: string;
+  rainVolume: number;
+  snowVolume: number;
+  humidity: number;
+  windSpeed: number;
+  cloudiness: number;
+  timeOfDay: "day" | "night";
   locationName: string;
 };
 
