@@ -1,4 +1,4 @@
-## Get started
+## Get started w/ Digital Clothing
 
 1. Install dependencies
 
