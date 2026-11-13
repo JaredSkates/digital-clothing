@@ -1,106 +1,117 @@
-import type { Occasion } from "../../constants/closet-item";
-import type { Outfit } from "../../types/outfits";
-import type { WeatherReport } from "../../types/weather";
+import { ClosetItemType } from "@/types/closet-item";
+import type { Category, OccasionPreset, Outfit } from "../../types/outfits";
+import type { ForecastDetails } from "../../types/weather";
 import {
   groupByCategory,
   hasRequiredItems,
-  isFitForOccasion,
+  isAllowedForOccasion,
   needsOuterwear,
-  scoreOutfit,
 } from "../../utils/outfit-helper";
-import type { ClosetItemType } from "../db/schema";
+import {
+  calculateWeightedScore,
+  scorePreference,
+  scoreWeatherSuitability,
+} from "./outfit-scorer";
 
-export type RecommendationContext = {
-  weather?: WeatherReport;
-  occasion?: Occasion;
+export type OutfitContext = {
+  occasion: OccasionPreset;
+  weather?: ForecastDetails;
 };
 
-export type ScoredOutfit = {
-  outfit: Outfit;
-  score: number;
-};
-
-export function filterEligibleItems(
+function filterEligibleItems(
   items: ClosetItemType[],
-  context: RecommendationContext,
+  context: OutfitContext,
 ): ClosetItemType[] {
-  return items.filter((item) => isFitForOccasion(item, context.occasion));
+  return items.filter((item) => isAllowedForOccasion(item, context.occasion));
 }
 
-export function generateCandidateOutfits(
-  items: ClosetItemType[],
+export function scoreOutfit(outfit: Outfit, context: OutfitContext) {
+  const items = [
+    outfit.top,
+    outfit.bottom,
+    ...(outfit.outerwear ? [outfit.outerwear] : []),
+  ];
+
+  const preferredFormalities = context.occasion.preferredFormalities ?? [];
+  const preferredStyles = context.occasion.preferredStyles ?? [];
+  const weather = context.weather;
+
+  const breakdown = {
+    styleRelevance: scorePreference(
+      items,
+      preferredStyles,
+      (item) => item.styles,
+    ),
+    formality: scorePreference(
+      items,
+      preferredFormalities,
+      (item) => item.formalities,
+    ),
+    weatherSuitability: scoreWeatherSuitability(outfit, weather),
+    colorHarmony: null,
+    silhouette: null,
+    materialCompatibility: null,
+  };
+
+  return {
+    outfit,
+    breakdown,
+    score: calculateWeightedScore(breakdown),
+  };
+}
+
+export function generateBaseOutfits(
+  closet: Record<Category, ClosetItemType[]>,
+  context: OutfitContext,
 ): Outfit[] {
-  const closet = groupByCategory(items);
   if (!hasRequiredItems(closet)) return [];
 
-  const outerwearOptions = [undefined, ...closet.outerwear];
-  const shoeOptions = [undefined, ...closet.footwear];
-  const accessoryOptions = [undefined, ...closet.accessory];
+  const shouldIncludeOuterwear =
+    needsOuterwear(context.weather) && (closet.outerwear?.length ?? 0) > 0;
 
   return closet.top.flatMap((top) =>
-    closet.bottom.flatMap((bottom) =>
-      outerwearOptions.flatMap((outerwear) =>
-        shoeOptions.flatMap((shoes) =>
-          accessoryOptions.map((accessory) => ({
-            top,
-            bottom,
-            outerwear,
-            shoes,
-            accessory,
-          })),
-        ),
-      ),
-    ),
+    closet.bottom.flatMap((bottom) => {
+      // If outerwear is required and options are available, combine top + bottom + outerwear
+      if (shouldIncludeOuterwear) {
+        return closet.outerwear.map((outerwear) => ({
+          top,
+          bottom,
+          outerwear,
+        }));
+      }
+
+      // Default: base pair without outerwear
+      return [{ top, bottom }];
+    }),
   );
 }
 
-export function isValidOutfit(
-  outfit: Outfit,
-  context: RecommendationContext,
-): boolean {
-  if (!outfit.top || !outfit.bottom) return false;
-  return !needsOuterwear(context.weather) || Boolean(outfit.outerwear);
-}
+const TOP_POOL_SIZE = 5;
 
 export function rankOutfits(
-  outfits: Outfit[],
-  context: RecommendationContext,
-): ScoredOutfit[] {
-  return outfits
-    .map((outfit) => ({
-      outfit,
-      score: scoreOutfit(outfit, context.weather, context.occasion),
-    }))
-    .sort((a, b) => b.score - a.score);
-}
+  items: ClosetItemType[],
+  occasion: OccasionPreset,
+  weather?: ForecastDetails,
+) {
+  const context: OutfitContext = { weather, occasion };
+  const eligibleItems = filterEligibleItems(items, context);
+  if (eligibleItems.length === 0) return [];
 
-export function chooseFromBest(
-  rankedOutfits: ScoredOutfit[],
-  random: () => number = Math.random,
-): Outfit | null {
-  if (rankedOutfits.length === 0) return null;
-
-  const bestScore = rankedOutfits[0].score;
-  const bestOutfits = rankedOutfits.filter(({ score }) => score === bestScore);
-  const index = Math.min(
-    Math.floor(random() * bestOutfits.length),
-    bestOutfits.length - 1,
-  );
-  return bestOutfits[index].outfit;
+  const closet = groupByCategory(eligibleItems);
+  return generateBaseOutfits(closet, context)
+    .map((outfit) => scoreOutfit(outfit, context))
+    .filter((candidate) => candidate.score !== null)
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
 }
 
 export function recommendBestOutfit(
   items: ClosetItemType[],
-  weather?: WeatherReport,
-  occasion?: Occasion,
+  occasion: OccasionPreset,
+  weather?: ForecastDetails,
 ): Outfit | null {
-  const context = { weather, occasion };
-  const eligibleItems = filterEligibleItems(items, context);
-  const candidates = generateCandidateOutfits(eligibleItems);
-  const validOutfits = candidates.filter((outfit) =>
-    isValidOutfit(outfit, context),
-  );
-  const rankedOutfits = rankOutfits(validOutfits, context);
+  const ranked = rankOutfits(items, occasion, weather);
+  if (ranked.length === 0) return null;
 
-  return chooseFromBest(rankedOutfits);
+  const topPool = ranked.slice(0, TOP_POOL_SIZE);
+  return topPool[Math.floor(Math.random() * topPool.length)].outfit;
 }

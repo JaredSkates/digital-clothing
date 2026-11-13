@@ -1,97 +1,130 @@
-export const CATEGORIES = [
-  { value: "top", label: "Top" },
-  { value: "bottom", label: "Bottom" },
-  { value: "outerwear", label: "Outerwear" },
-  { value: "footwear", label: "Footwear" },
-  { value: "accessory", label: "Accessory" },
-] as const;
+import type { OutfitScoreBreakdown } from "@/lib/outfit/outfit-scorer";
+import type { ClosetItemType } from "@/types/closet-item";
+import type { OccasionPreset } from "@/types/outfits";
 
-export type Category = (typeof CATEGORIES)[number]["value"];
-
-export const SUB_CATEGORIES = {
-  top: [
-    { value: "t-shirt", label: "T-shirt" },
-    { value: "long-sleeve", label: "Long Sleeve" },
-    { value: "blouse", label: "Blouse" },
-    { value: "other", label: "Other" },
-  ],
-  bottom: [
-    { value: "shorts", label: "Shorts" },
-    { value: "pants", label: "Pants" },
-    { value: "jeans", label: "Jeans" },
-    { value: "skirt", label: "Skirt" },
-    { value: "other", label: "Other" },
-  ],
-  outerwear: [
-    { value: "jacket", label: "Jacket" },
-    { value: "coat", label: "Coat" },
-    { value: "sweater", label: "Sweater" },
-    { value: "other", label: "Other" },
-  ],
-  footwear: [
-    { value: "sneakers", label: "Sneakers" },
-    { value: "boots", label: "Boots" },
-    { value: "dress-shoes", label: "Dress Shoes" },
-    { value: "other", label: "Other" },
-  ],
-  accessory: [
-    { value: "hat", label: "Hat" },
-    { value: "scarf", label: "Scarf" },
-    { value: "other", label: "Other" },
-  ],
+export const WARMTH_LEVELS = {
+  0: "No added warmth",
+  1: "Very lightweight",
+  2: "Lightweight / moderate",
+  3: "Warm",
+  4: "Very warm",
 } as const;
 
-export type SubCategory = (typeof SUB_CATEGORIES)[Category][number]["value"];
+export const MAX_WARMTH_LEVEL = 4;
 
-export const FORMALITIES = ["casual", "smart-casual", "formal"] as const;
+// Accessories remain a closet category, but are not part of generated outfits yet.
+export const CATEGORIES = [
+  "top",
+  "bottom",
+  "outerwear",
+  "footwear",
+  "accessory",
+] as const;
 
-export type Formality = (typeof FORMALITIES)[number];
+export const SUB_CATEGORIES = {
+  top: ["t-shirt", "long-sleeve", "blouse", "dress-shirt", "other"],
+  bottom: ["shorts", "pants", "jeans", "skirt", "leggings", "other"],
+  outerwear: ["jacket", "coat", "sweater", "blazer", "other"],
+  footwear: ["sneakers", "boots", "dress-shoes", "heels", "other"],
+  accessory: ["hat", "scarf", "other"],
+} as const;
 
-type OccasionDefinition = {
-  value: string;
-  label: string;
-  preferredFormalities: readonly Formality[];
-  excludedSubCategories: readonly SubCategory[];
-};
+export const FORMALITIES = [
+  "casual",
+  "smart-casual",
+  "business-casual",
+  "formal",
+] as const;
 
-export const OCCASIONS = [
+export const STYLES = [
+  "streetwear",
+  "minimalist",
+  "vintage",
+  "alternative",
+  "preppy",
+  "athletic",
+] as const;
+
+export const OCCASION_PRESETS: OccasionPreset[] = [
   {
-    value: "casual",
-    label: "Casual",
-    preferredFormalities: ["casual"],
-    excludedSubCategories: [],
-  },
-  {
-    value: "school",
-    label: "School",
+    id: "everyday",
+    name: "Everyday",
+    bannedSubCategories: [],
     preferredFormalities: ["casual", "smart-casual"],
-    excludedSubCategories: [],
+    preferredStyles: [
+      "streetwear",
+      "minimalist",
+      "vintage",
+      "alternative",
+      "athletic",
+    ],
   },
   {
-    value: "work",
-    label: "Work",
-    preferredFormalities: ["smart-casual", "formal"],
-    excludedSubCategories: ["shorts"],
+    id: "school",
+    name: "School",
+    bannedSubCategories: [],
+    preferredFormalities: ["casual", "smart-casual"],
+    preferredStyles: [
+      "streetwear",
+      "minimalist",
+      "vintage",
+      "preppy",
+      "athletic",
+    ],
   },
   {
-    value: "date",
-    label: "Date",
-    preferredFormalities: ["smart-casual", "formal"],
-    excludedSubCategories: [],
+    id: "work",
+    name: "Work",
+    bannedSubCategories: [],
+    preferredFormalities: ["smart-casual", "business-casual"],
+    preferredStyles: ["minimalist", "preppy", "vintage"],
   },
   {
-    value: "formal",
-    label: "Formal",
-    preferredFormalities: ["formal"],
-    excludedSubCategories: ["shorts"],
+    id: "date",
+    name: "Date",
+    bannedSubCategories: [],
+    preferredFormalities: ["smart-casual", "casual"],
+    preferredStyles: ["minimalist", "vintage", "alternative", "preppy"],
   },
   {
-    value: "gym",
-    label: "Gym",
-    preferredFormalities: ["casual"],
-    excludedSubCategories: [],
+    id: "interview",
+    name: "Interview",
+    bannedSubCategories: ["shorts", "leggings"],
+    preferredFormalities: ["business-casual", "formal"],
+    preferredStyles: ["minimalist", "preppy"],
   },
-] as const satisfies readonly OccasionDefinition[];
+  {
+    id: "party",
+    name: "Party",
+    bannedSubCategories: [],
+    preferredFormalities: ["smart-casual", "casual"],
+    preferredStyles: ["streetwear", "vintage", "alternative", "preppy"],
+  },
+  {
+    id: "gym",
+    name: "Gym",
+    bannedSubCategories: [
+      "jeans",
+      "pants",
+      "skirt",
+      "dress-shoes",
+      "heels",
+      "boots",
+    ],
+    preferredFormalities: [],
+    preferredStyles: ["athletic"],
+  },
+];
 
-export type OccasionValue = (typeof OCCASIONS)[number]["value"];
-export type Occasion = (typeof OCCASIONS)[number];
+export const SCORE_WEIGHTS = {
+  styleRelevance: 0.4,
+  formality: 0.35,
+  weatherSuitability: 0.25,
+} satisfies Partial<Record<keyof OutfitScoreBreakdown, number>>;
+
+export const RESISTANCE_LEVELS = {
+  none: 0,
+  low: 1,
+  medium: 2,
+  high: 3,
+} satisfies Record<NonNullable<ClosetItemType["waterResistance"]>, number>;

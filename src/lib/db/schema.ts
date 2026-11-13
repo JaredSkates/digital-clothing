@@ -1,4 +1,5 @@
 // db/schema.ts
+import { OccasionPreset, SubCategory } from "@/types/outfits";
 import {
   integer,
   pgEnum,
@@ -8,32 +9,20 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
-import {
-  FORMALITIES,
-  type OccasionValue,
-  type SubCategory,
-} from "../../constants/closet-item";
+import { CATEGORIES, FORMALITIES, STYLES } from "../../constants/closet-item";
 
 // ==========================================
 // 1. Enums
 // ==========================================
 
-export const categoryEnum = pgEnum("category", [
-  "top",
-  "bottom",
-  "outerwear",
-  "footwear",
-  "accessory",
-]);
-
-export const closetItemFitEnum = pgEnum("closet_item_fit", [
+const categoryEnum = pgEnum("category", CATEGORIES);
+const closetItemFitEnum = pgEnum("closet_item_fit", [
   "slim",
   "regular",
   "relaxed",
   "oversized",
 ]);
-
-export const closetItemMaterialEnum = pgEnum("closet_item_material", [
+const closetItemMaterialEnum = pgEnum("closet_item_material", [
   "cotton",
   "denim",
   "linen",
@@ -42,11 +31,14 @@ export const closetItemMaterialEnum = pgEnum("closet_item_material", [
   "synthetic",
   "other",
 ]);
-
-export const closetItemFormalityEnum = pgEnum(
-  "closet_item_formality",
-  FORMALITIES,
-);
+const closetItemFormalityEnum = pgEnum("closet_item_formality", FORMALITIES);
+const closetItemStyleEnum = pgEnum("closet_item_style", STYLES);
+export const weatherResistanceEnum = pgEnum("weather_resistance", [
+  "none",
+  "low",
+  "medium",
+  "high",
+]);
 
 // ==========================================
 // 2. Core Tables
@@ -60,10 +52,20 @@ export const ClosetItem = pgTable("ClosetItem", {
 
   category: categoryEnum("category").notNull(),
   subCategory: text("sub_category").$type<SubCategory>(),
-  color: text("color"),
+
+  colorHex: text("color_hex"), // e.g., "#2B2B2B"
   material: closetItemMaterialEnum("material"),
   fit: closetItemFitEnum("fit"),
-  formality: closetItemFormalityEnum("formality"),
+
+  waterResistance: weatherResistanceEnum("water_resistance"),
+  windResistance: weatherResistanceEnum("wind_resistance"),
+
+  formalities: closetItemFormalityEnum("formalities")
+    .array()
+    .notNull()
+    .default([]),
+  styles: closetItemStyleEnum("styles").array().notNull().default([]),
+
   size: text("size"),
   warmth: integer("warmth"),
 
@@ -77,7 +79,7 @@ export const ClosetItem = pgTable("ClosetItem", {
 export const SavedOutfit = pgTable("SavedOutfit", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull().unique(),
-  occasion: text("occasion").$type<OccasionValue>(),
+  occasion: text("occasion").$type<OccasionPreset>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -117,16 +119,3 @@ export const closetItemTags = pgTable(
   },
   (table) => [primaryKey({ columns: [table.closetItemId, table.tagId] })],
 );
-
-// ==========================================
-// 4. Inferred Types
-// ==========================================
-
-export type ClosetItemType = typeof ClosetItem.$inferSelect;
-export type NewClosetItemType = typeof ClosetItem.$inferInsert;
-
-export type SavedOutfitType = typeof SavedOutfit.$inferSelect;
-export type NewSavedOutfitType = typeof SavedOutfit.$inferInsert;
-
-export type TagType = typeof tags.$inferSelect;
-export type NewTagType = typeof tags.$inferInsert;

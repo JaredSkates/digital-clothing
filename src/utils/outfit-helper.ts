@@ -1,66 +1,23 @@
-import type { Category, Occasion } from "@/constants/closet-item";
-import type { ClosetItemType } from "@/lib/db/schema";
-import type { Outfit } from "@/types/outfits";
-import type { WeatherReport } from "@/types/weather";
+import { MAX_WARMTH_LEVEL, RESISTANCE_LEVELS } from "@/constants/closet-item";
+import { ClosetItemType } from "@/types/closet-item";
+import type { Category, OccasionPreset, Outfit } from "@/types/outfits";
+import type { ForecastDetails } from "@/types/weather";
 
 const COLD_POINT = 65; // in fahrenheit
+export const MAX_OUTFIT_SLOTS = 4;
 
-// Returns true if the occasion doesn't explicitly rule out this subcategory
-export function isFitForOccasion(
+export function isAllowedForOccasion(
   item: ClosetItemType,
-  occasion?: Occasion,
+  occasion?: OccasionPreset,
 ): boolean {
-  if (!occasion || item.subCategory == null || item.subCategory === "other") {
-    return true;
-  }
-  return !occasion.excludedSubCategories.some(
-    (subCategory) => subCategory === item.subCategory,
-  );
+  if (!occasion || !item.subCategory) return true;
+
+  return !occasion.bannedSubCategories.includes(item.subCategory);
+}
+export function getWarmthTolerance(itemCount: number) {
+  return (MAX_WARMTH_LEVEL * itemCount) / 2; // change the divisor here when tuning
 }
 
-// Scoring
-export function weatherPenalty(
-  outfit: Outfit,
-  weather?: WeatherReport,
-): number {
-  if (!weather) return 0;
-  const difference = warmthDifference(
-    outfit,
-    findTargetWarmth(weather.feelsLike),
-  );
-  return difference ?? 0;
-}
-
-export function occasionPenalty(outfit: Outfit, occasion?: Occasion): number {
-  if (!occasion) return 0;
-
-  return Object.values(outfit).reduce((penalty, item) => {
-    if (
-      !item ||
-      item.formality == null ||
-      occasion.preferredFormalities.some(
-        (formality) => formality === item.formality,
-      )
-    ) {
-      return penalty;
-    }
-
-    return penalty + 10;
-  }, 0);
-}
-
-export function scoreOutfit(
-  outfit: Outfit,
-  weather?: WeatherReport,
-  occasion?: Occasion,
-): number {
-  let score = 100;
-  score -= weatherPenalty(outfit, weather);
-  score -= occasionPenalty(outfit, occasion);
-  return score;
-}
-
-// Closet utilities
 export function groupByCategory(
   items: ClosetItemType[],
 ): Record<Category, ClosetItemType[]> {
@@ -86,16 +43,18 @@ export function hasRequiredItems(
   return closet.top.length > 0 && closet.bottom.length > 0;
 }
 
-// Weather utilities
-
 // outfit's accumulated warmth
 export function totalWarmth(outfit: Outfit): number | null {
   let warmth = 0;
 
-  for (const item of Object.values(outfit)) {
-    if (!item) continue;
-    if (item.warmth == null) return null;
-    warmth += item.warmth;
+  for (const value of Object.values(outfit)) {
+    if (!value) continue;
+
+    const items = Array.isArray(value) ? value : [value];
+    for (const item of items) {
+      if (item.warmth == null) return null;
+      warmth += item.warmth;
+    }
   }
 
   return warmth;
@@ -110,8 +69,15 @@ export function warmthDifference(
   return warmth == null ? null : Math.abs(warmth - target);
 }
 
+// Counts the worn outfit pieces that can set a target; accessories are not part of Outfit.
+export function getOutfitLength(outfit: Outfit): number {
+  return [outfit.top, outfit.bottom, outfit.outerwear, outfit.shoes].filter(
+    (item) => item != null,
+  ).length;
+}
+
 // returns true if cold enough or its raining
-export function needsOuterwear(w?: WeatherReport): boolean | null {
+export function needsOuterwear(w?: ForecastDetails): boolean | null {
   if (!w) return null;
 
   const cold = w.feelsLike < COLD_POINT;
@@ -120,12 +86,69 @@ export function needsOuterwear(w?: WeatherReport): boolean | null {
   return cold || wet;
 }
 
-// translates current weather to warmth level
-export function findTargetWarmth(feelsLike: number): number {
-  if (feelsLike >= 80) return 2;
-  if (feelsLike >= 65) return 4;
-  if (feelsLike >= 50) return 6;
-  if (feelsLike >= 35) return 8;
+// Scale targets against the four outfit slots, even when outerwear or shoes are missing.
+function scaleTarget(target: number, outfitLength: number): number {
+  const slots = Math.min(Math.max(outfitLength, 0), MAX_OUTFIT_SLOTS);
+  return (target * slots) / MAX_OUTFIT_SLOTS;
+}
 
-  return 10;
+// Four core slots need at most 16 warmth points (4 per item).
+export function findTargetWarmth(
+  feelsLike: number,
+  outfitLength: number,
+): number {
+  let fourSlotTarget: number;
+  if (feelsLike >= 85) fourSlotTarget = 3.2;
+  else if (feelsLike >= 65) fourSlotTarget = 6.4;
+  else if (feelsLike >= 45) fourSlotTarget = 9.6;
+  else if (feelsLike >= 35) fourSlotTarget = 12.8;
+  else fourSlotTarget = 16;
+
+  return scaleTarget(fourSlotTarget, outfitLength);
+}
+
+// Rain is measured in mm/h. Four core slots need at most 12 resistance points.
+export function findTargetRain(
+  rainAmount: number,
+  outfitLength: number,
+): number {
+  let fourSlotTarget: number;
+  if (rainAmount === 0) fourSlotTarget = 0;
+  else if (rainAmount < 2.5) fourSlotTarget = 4;
+  else if (rainAmount < 10) fourSlotTarget = 8;
+  else fourSlotTarget = 12;
+
+  return scaleTarget(fourSlotTarget, outfitLength);
+}
+
+// wind mph
+export function findTargetWind(
+  windSpeed: number,
+  outfitLength: number,
+): number {
+  let fourSlotTarget: number;
+  if (windSpeed < 9) fourSlotTarget = 0;
+  else if (windSpeed < 16) fourSlotTarget = 4;
+  else if (windSpeed < 23) fourSlotTarget = 8;
+  else fourSlotTarget = 12;
+
+  return scaleTarget(fourSlotTarget, outfitLength);
+}
+
+export function getTotalResistance(
+  outfit: Outfit,
+  getResistance: (item: ClosetItemType) => ClosetItemType["waterResistance"],
+): number {
+  let total = 0;
+
+  for (const value of Object.values(outfit)) {
+    if (!value) continue;
+
+    const items = Array.isArray(value) ? value : [value];
+    for (const item of items) {
+      total += RESISTANCE_LEVELS[getResistance(item) ?? "none"];
+    }
+  }
+
+  return total;
 }
