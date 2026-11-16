@@ -1,6 +1,7 @@
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { useRouter } from "expo-router";
-import { Pressable, ScrollView, StyleSheet } from "react-native";
+import { useRef } from "react";
+import { Alert, Pressable, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import ClothingForm from "@/components/clothing-form";
@@ -9,17 +10,30 @@ import ImageUploader from "@/components/upload";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { useImagePicker } from "@/hooks/use-img-picker";
 import { useTheme } from "@/hooks/use-theme";
+import { addClosetItem } from "@/services/closet-storage";
 import { ClothingInput } from "@/types/clothing";
 
 export default function ModalScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { image, selectImage, takePhoto } = useImagePicker();
+  const isSaving = useRef(false); // stops a double-tap from saving twice
 
-  const saveItem = (formData: ClothingInput) => {
-    if (!image) return;
-    // TODO: write to the DB
-    console.log({ ...formData, imgUri: image });
+  const saveItem = async (formData: ClothingInput) => {
+    if (!image || isSaving.current) return;
+
+    isSaving.current = true;
+    try {
+      await addClosetItem({ ...formData, imgUri: image });
+      router.back(); // the Closet tab reloads itself when it regains focus
+    } catch (e) {
+      Alert.alert(
+        "Couldn't save item",
+        e instanceof Error ? e.message : "Something went wrong. Please try again.",
+      );
+    } finally {
+      isSaving.current = false;
+    }
   };
 
   return (
