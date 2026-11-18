@@ -1,5 +1,10 @@
 // db/schema.ts
-import { OccasionPreset, SubCategory } from "@/types/outfits";
+import {
+  OccasionPreset,
+  SubCategory,
+  WarmthLevel,
+  WeatherResistance,
+} from "@/types";
 import {
   integer,
   pgEnum,
@@ -9,36 +14,23 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
-import { CATEGORIES, FORMALITIES, STYLES } from "../../constants/closet-item";
+import {
+  CATEGORIES,
+  FITS,
+  FORMALITIES,
+  MATERIALS,
+  STYLES,
+} from "../../constants/closet";
 
 // ==========================================
 // 1. Enums
 // ==========================================
 
 const categoryEnum = pgEnum("category", CATEGORIES);
-const closetItemFitEnum = pgEnum("closet_item_fit", [
-  "slim",
-  "regular",
-  "relaxed",
-  "oversized",
-]);
-const closetItemMaterialEnum = pgEnum("closet_item_material", [
-  "cotton",
-  "denim",
-  "linen",
-  "wool",
-  "leather",
-  "synthetic",
-  "other",
-]);
+const closetItemFitEnum = pgEnum("closet_item_fit", FITS);
+const closetItemMaterialEnum = pgEnum("closet_item_material", MATERIALS);
 const closetItemFormalityEnum = pgEnum("closet_item_formality", FORMALITIES);
 const closetItemStyleEnum = pgEnum("closet_item_style", STYLES);
-export const weatherResistanceEnum = pgEnum("weather_resistance", [
-  "none",
-  "low",
-  "medium",
-  "high",
-]);
 
 // ==========================================
 // 2. Core Tables
@@ -53,12 +45,12 @@ export const ClosetItem = pgTable("ClosetItem", {
   category: categoryEnum("category").notNull(),
   subCategory: text("sub_category").$type<SubCategory>(),
 
-  colorHex: text("color_hex"), // e.g., "#2B2B2B"
+  colorHex: text("color_hex"),
   material: closetItemMaterialEnum("material"),
   fit: closetItemFitEnum("fit"),
 
-  waterResistance: weatherResistanceEnum("water_resistance"),
-  windResistance: weatherResistanceEnum("wind_resistance"),
+  waterResistance: integer("water_resistance").$type<WeatherResistance>(),
+  windResistance: integer("wind_resistance").$type<WeatherResistance>(),
 
   formalities: closetItemFormalityEnum("formalities")
     .array()
@@ -67,9 +59,10 @@ export const ClosetItem = pgTable("ClosetItem", {
   styles: closetItemStyleEnum("styles").array().notNull().default([]),
 
   size: text("size"),
-  warmth: integer("warmth"),
+  warmth: integer("warmth").$type<WarmthLevel>(),
 
   wornCount: integer("worn_count").default(0).notNull(),
+  lastWornAt: timestamp("last_worn_at"),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -83,10 +76,10 @@ export const SavedOutfit = pgTable("SavedOutfit", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const tags = pgTable("Tags", {
-  id: uuid("tag_id").primaryKey().defaultRandom(),
-  tagName: text("tag_name").notNull().unique(),
-});
+// export const tags = pgTable("Tags", {
+//   id: uuid("tag_id").primaryKey().defaultRandom(),
+//   tagName: text("tag_name").notNull().unique(),
+// });
 
 // ==========================================
 // 3. Relation Tables
@@ -107,15 +100,15 @@ export const SavedOutfitItem = pgTable(
   ],
 );
 
-export const closetItemTags = pgTable(
-  "ClosetItemTags",
-  {
-    closetItemId: uuid("closet_item_id")
-      .notNull()
-      .references(() => ClosetItem.id, { onDelete: "cascade" }),
-    tagId: uuid("tag_id")
-      .notNull()
-      .references(() => tags.id, { onDelete: "cascade" }),
-  },
-  (table) => [primaryKey({ columns: [table.closetItemId, table.tagId] })],
-);
+// export const closetItemTags = pgTable(
+//   "ClosetItemTags",
+//   {
+//     closetItemId: uuid("closet_item_id")
+//       .notNull()
+//       .references(() => ClosetItem.id, { onDelete: "cascade" }),
+//     tagId: uuid("tag_id")
+//       .notNull()
+//       .references(() => tags.id, { onDelete: "cascade" }),
+//   },
+//   (table) => [primaryKey({ columns: [table.closetItemId, table.tagId] })],
+// );
