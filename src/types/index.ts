@@ -10,6 +10,15 @@ import type {
 } from "@/constants/closet";
 import type { ClosetItem, SavedOutfit } from "@/lib/db/schema";
 
+// ---------- Frontend ---------
+export type ClosetItemFormInput = {
+  name: string;
+  category: Category | "";
+  imgUri: string | null;
+};
+
+// ----------- closet item data ------------------
+
 export type Category = (typeof CATEGORIES)[number];
 export type ItemCategory = Exclude<Category, "accessory">;
 export type SubCategory = (typeof SUB_CATEGORIES)[Category][number];
@@ -17,39 +26,37 @@ export type Formality = (typeof FORMALITIES)[number];
 export type Style = (typeof STYLES)[number];
 export type Fit = (typeof FITS)[number];
 export type Material = (typeof MATERIALS)[number];
-
 export type WarmthLevel = (typeof WARMTH_LEVELS)[number]["value"]; // 0 | 1 | 2 | 3 | 4
 export type WeatherResistance =
   (typeof WEATHER_RESISTANCE_LEVELS)[number]["value"]; // 0 | 1 | 2 | 3
 
-export type ClosetItemFormInput = {
-  name: string;
-  category: Category | "";
-  imgUri: string | null;
-};
-
 export type ClosetItemType = typeof ClosetItem.$inferSelect;
 export type NewClosetItemType = typeof ClosetItem.$inferInsert;
 
-export type Outfit = {
-  top?: ClosetItemType;
-  bottom?: ClosetItemType;
-  onePiece?: ClosetItemType;
-  outerwear?: ClosetItemType;
-  shoes?: ClosetItemType;
-};
+// ---------------- outfit -----------------
+
+export type Outfit = Partial<Record<Category, ClosetItemType>>;
 
 export type OutfitScoreBreakdown = {
   styleRelevance: number | null;
   formality: number | null;
-  weatherSuitability: number | null;
-  colorHarmony: ColorHarmonyResult | null;
+  weatherProtection: number | null;
+  colorHarmony: ColorScoreResult;
   silhouette: number | null;
   materialCompatibility: number | null;
 };
 
-export type SavedOutfitType = typeof SavedOutfit.$inferSelect;
-export type NewSavedOutfitType = typeof SavedOutfit.$inferInsert;
+export type ScoredOutfit = {
+  outfit: Outfit;
+  score: number; // 0 to 1
+  breakdown: OutfitScoreBreakdown;
+};
+
+export type BodyRegion = "upperBody" | "lowerBody" | "feet";
+
+export type RegionValues = Record<BodyRegion, number>;
+
+// ------------------ occasion ----------------------
 
 export type OccasionType =
   | "everyday"
@@ -60,29 +67,35 @@ export type OccasionType =
   | "party"
   | "gym";
 
-export interface OccasionPreset {
+export type OccasionPreset = {
   id: OccasionType;
   name: string;
   bannedSubCategories: SubCategory[];
   preferredFormalities: Formality[];
   preferredStyles: Style[];
-}
+};
+// --------------- color scoring -----------
 
-export interface OklchColor {
+export type OklchColor = {
   lightness: number;
   chroma: number;
   hue: number;
-}
+};
+export type ColorRole = "neutral" | "muted" | "vivid";
 
-export interface ColorHarmonyResult {
+export type ColorScoreResult = {
   score: number;
-  detectedScheme: string;
-  neutralsDetected: string[];
-  subScores: {
-    lightnessContrast: string;
-    chromaHierarchy: string;
-    hueHarmony: string;
-    visualProportions: string;
-  };
-  convertedOklchColors: Record<string, OklchColor>;
-}
+  harmonyScheme: string;
+  vividPieceCount: number;
+};
+
+export type ColorReadyItem = {
+  item: ClosetItemType;
+  oklch: OklchColor;
+  colorRole: ColorRole;
+  visualAreaWeight: number;
+};
+
+// ---------------------------------------
+export type SavedOutfitType = typeof SavedOutfit.$inferSelect;
+export type NewSavedOutfitType = typeof SavedOutfit.$inferInsert;

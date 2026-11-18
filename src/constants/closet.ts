@@ -88,3 +88,56 @@ export const MATERIALS = [
 export const COLD_POINT = 65;
 export const MAX_OUTFIT_SLOTS = 4;
 export const TOP_K = 5;
+
+// ---------- Color OKLCH ----------
+export const NEUTRAL_CHROMA_MAXIMUM = 0.04; // white, grays, black, beige
+export const DARK_NEUTRAL_LIGHTNESS_MAXIMUM = 0.42; // navy, brown, charcoal
+export const DARK_NEUTRAL_CHROMA_MAXIMUM = 0.07;
+
+export const EARTH_TONE_LIGHTNESS_MINIMUM = 0.35; // camel, tan, khaki
+export const EARTH_TONE_HUE_MINIMUM = 40;
+export const EARTH_TONE_HUE_MAXIMUM = 110;
+export const EARTH_TONE_CHROMA_MAXIMUM = 0.09;
+
+export const VIVID_CHROMA_MINIMUM = 0.15; // mustard, rust, red, royal blue
+
+export const MONOCHROMATIC_MAXIMUM_ARC = 15;
+export const ANALOGOUS_MAXIMUM_ARC = 60;
+export const COMPLEMENTARY_MINIMUM_ANGLE = 150;
+export const COMPLEMENTARY_HUE_TOLERANCE = 30; // also covers split-complementary
+export const TRIADIC_HUE_TOLERANCE = 25;
+
+export const HARMONY_SCORE = {
+  neutralAnchored: 0.95,
+  monochromatic: 1,
+  analogous: 1,
+  complementary: 0.9, // "complementary with restraint"
+  triadic: 0.75,
+  unresolved: 0.35,
+};
+// A single vivid piece at or below this area share is a "focal accent".
+export const FOCAL_ACCENT_MAXIMUM_AREA = 0.3;
+export const ACCENT_SCORE = {
+  noVividPieces: 0.85, // calm tonal outfit
+  focalAccent: 1,
+  largeVividPiece: 0.8,
+  twoVividPieces: 0.65,
+  threeOrMoreVividPieces: 0.4,
+};
+
+// Contrast between the lightest and darkest piece.
+export const LIGHTNESS_SPREAD = {
+  flatBelow: 0.15,
+  subtleBelow: 0.3,
+  idealUpTo: 0.7,
+};
+export const LIGHTNESS_SCORE = {
+  flat: 0.45,
+  subtle: 0.7,
+  ideal: 1,
+  stark: 0.85,
+};
+
+// Steps off target at which the score reaches 0.
+export const COLD_FALLOFF = 3; // underdressed: steeper
+export const HOT_FALLOFF = 4; // overdressed: more forgiving

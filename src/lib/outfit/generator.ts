@@ -1,5 +1,11 @@
-import { ClosetItemType } from "@/types/closet-item";
-import type { Category, OccasionPreset, Outfit } from "../../types/outfits";
+import { TOP_K } from "@/constants/closet";
+import type {
+  Category,
+  ClosetItemType,
+  OccasionPreset,
+  Outfit,
+  ScoredOutfit,
+} from "@/types";
 import type { ForecastDetails } from "../../types/weather";
 import {
   groupByCategory,
@@ -9,8 +15,9 @@ import {
 } from "../../utils/outfit-helper";
 import {
   calculateWeightedScore,
+  scoreColorHarmony,
   scorePreference,
-  scoreWeatherSuitability,
+  scoreWeatherProtection,
 } from "./outfit-scorer";
 
 export type OutfitContext = {
@@ -18,6 +25,10 @@ export type OutfitContext = {
   weather?: ForecastDetails;
 };
 
+const FREEZING_POINT = 32;
+const MIN_FREEZING_OUTERWEAR_WARMTH = 3;
+
+// hard filters
 function filterEligibleItems(
   items: ClosetItemType[],
   context: OutfitContext,
@@ -25,30 +36,28 @@ function filterEligibleItems(
   return items.filter((item) => isAllowedForOccasion(item, context.occasion));
 }
 
-export function scoreOutfit(outfit: Outfit, context: OutfitContext) {
-  const items = [
-    outfit.top,
-    outfit.bottom,
-    ...(outfit.outerwear ? [outfit.outerwear] : []),
-  ];
-
+// score [top, bottom, outerwear(optional)]
+export function scoreOutfit(
+  outfit: Outfit,
+  context: OutfitContext,
+): ScoredOutfit {
   const preferredFormalities = context.occasion.preferredFormalities ?? [];
   const preferredStyles = context.occasion.preferredStyles ?? [];
   const weather = context.weather;
 
   const breakdown = {
     styleRelevance: scorePreference(
-      items,
+      outfit,
       preferredStyles,
       (item) => item.styles,
     ),
     formality: scorePreference(
-      items,
+      outfit,
       preferredFormalities,
       (item) => item.formalities,
     ),
-    weatherSuitability: scoreWeatherSuitability(outfit, weather),
-    colorHarmony: null,
+    weatherProtection: scoreWeatherProtection(outfit, weather),
+    colorHarmony: scoreColorHarmony(outfit),
     silhouette: null,
     materialCompatibility: null,
   };
@@ -60,34 +69,40 @@ export function scoreOutfit(outfit: Outfit, context: OutfitContext) {
   };
 }
 
-export function generateBaseOutfits(
+function buildCoreOutfits(pools: Record<Category, ClosetItemType[]>): Outfit[] {
+  const outfits: Outfit[] = [];
+  for (const top of pools.top) {
+    for (const bottom of pools.bottom) outfits.push({ top, bottom });
+  }
+  for (const onePiece of pools.onePiece) outfits.push({ onePiece });
+  return outfits;
+}
+
+export function generateOutfits(
   closet: Record<Category, ClosetItemType[]>,
   context: OutfitContext,
 ): Outfit[] {
   if (!hasRequiredItems(closet)) return [];
 
-  const shouldIncludeOuterwear =
-    needsOuterwear(context.weather) && (closet.outerwear?.length ?? 0) > 0;
+  const outerwearOptions =
+    needsOuterwear(context.weather) && closet.outerwear.length > 0
+      ? closet.outerwear
+      : [undefined];
+  const footwearOptions =
+    closet.footwear.length > 0 ? closet.footwear : [undefined];
 
-  return closet.top.flatMap((top) =>
-    closet.bottom.flatMap((bottom) => {
-      // If outerwear is required and options are available, combine top + bottom + outerwear
-      if (shouldIncludeOuterwear) {
-        return closet.outerwear.map((outerwear) => ({
-          top,
-          bottom,
-          outerwear,
-        }));
-      }
-
-      // Default: base pair without outerwear
-      return [{ top, bottom }];
-    }),
+  return buildCoreOutfits(closet).flatMap((coreOutfit) =>
+    footwearOptions.flatMap((footwear) =>
+      outerwearOptions.map((outerwear) => ({
+        ...coreOutfit,
+        ...(footwear ? { footwear } : {}),
+        ...(outerwear ? { outerwear } : {}),
+      })),
+    ),
   );
 }
 
-const TOP_POOL_SIZE = 5;
-
+// filter, create, score, and rank
 export function rankOutfits(
   items: ClosetItemType[],
   occasion: OccasionPreset,
@@ -98,7 +113,7 @@ export function rankOutfits(
   if (eligibleItems.length === 0) return [];
 
   const closet = groupByCategory(eligibleItems);
-  return generateBaseOutfits(closet, context)
+  return generateOutfits(closet, context)
     .map((outfit) => scoreOutfit(outfit, context))
     .filter((candidate) => candidate.score !== null)
     .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
@@ -112,6 +127,6 @@ export function recommendBestOutfit(
   const ranked = rankOutfits(items, occasion, weather);
   if (ranked.length === 0) return null;
 
-  const topPool = ranked.slice(0, TOP_POOL_SIZE);
+  const topPool = ranked.slice(0, TOP_K);
   return topPool[Math.floor(Math.random() * topPool.length)].outfit;
 }

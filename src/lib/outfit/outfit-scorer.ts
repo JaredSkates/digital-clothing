@@ -1,36 +1,33 @@
-import { SCORE_WEIGHTS } from "@/constants/closet-item";
-import { ClosetItemType } from "@/types/closet-item";
 import {
-  findTargetRain,
-  findTargetWarmth,
-  findTargetWind,
-  getOutfitLength,
-  getTotalResistance,
-  getWarmthTolerance,
-  warmthDifference,
-} from "@/utils/outfit-helper";
-import type { Outfit } from "../../types/outfits";
+  COLOR_SUB_WEIGHTS,
+  OUTFIT_SCORE_WEIGHTS,
+  WEATHER_SCORE_WEIGHTS,
+} from "@/config/weights";
+import type {
+  ClosetItemType,
+  ColorScoreResult,
+  Outfit,
+  OutfitScoreBreakdown,
+} from "@/types";
+import { listOutfitItems, prepareOutfit } from "@/utils/outfit-helper";
 import type { ForecastDetails } from "../../types/weather";
-
-export type OutfitScoreBreakdown = {
-  styleRelevance: number | null;
-  formality: number | null;
-  weatherSuitability: number | null;
-  colorHarmony: number | null;
-  silhouette: number | null;
-  materialCompatibility: number | null;
-};
+import {
+  scoreAccentHierarchy,
+  scoreHueHarmony,
+  scoreLightnessContrast,
+} from "./color-scoring";
+import { scoreRain, scoreWarmth, scoreWind } from "./weather-scoring";
 
 // Items with no preference data are skipped. The score is the share of the rest that match.
 export function scorePreference(
-  items: ClosetItemType[],
+  outfit: Outfit,
   preferredValues: string[],
   getValues: (item: ClosetItemType) => string[],
 ): number | null {
-  if (preferredValues.length === 0) return 1;
+  if (preferredValues.length === 0) return null;
 
-  const itemsWithMetadata = items
-    .map((item) => getValues(item))
+  const itemsWithMetadata = listOutfitItems(outfit)
+    .map(getValues)
     .filter((values) => values.length > 0);
 
   if (itemsWithMetadata.length === 0) return null;
@@ -44,7 +41,7 @@ export function scorePreference(
 
 // Weather score: warmth counts for 50%, rain for 30%, and wind for 20%.
 // Without usable data there is no weather score.
-export function scoreWeatherSuitability(
+export function scoreWeatherProtection(
   outfit: Outfit,
   weather?: ForecastDetails,
 ): number | null {
@@ -54,9 +51,18 @@ export function scoreWeatherSuitability(
   let totalWeight = 0;
 
   const metrics = [
-    { score: scoreWarmth(outfit, weather.feelsLike), weight: 0.5 },
-    { score: scoreRain(outfit, weather), weight: 0.3 },
-    { score: scoreWind(outfit, weather.windSpeed), weight: 0.2 },
+    {
+      score: scoreWarmth(outfit, weather.feelsLike),
+      weight: WEATHER_SCORE_WEIGHTS.warmth,
+    },
+    {
+      score: scoreRain(outfit, weather),
+      weight: WEATHER_SCORE_WEIGHTS.rain,
+    },
+    {
+      score: scoreWind(outfit, weather.windSpeed),
+      weight: WEATHER_SCORE_WEIGHTS.wind,
+    },
   ];
 
   for (const { score, weight } of metrics) {
@@ -69,66 +75,42 @@ export function scoreWeatherSuitability(
   return totalWeight > 0 ? total / totalWeight : null;
 }
 
-// An exact match to the four-slot target scores 1. Too much or too little warmth lowers the score.
-export function scoreWarmth(outfit: Outfit, feelsLike: number): number | null {
-  const itemCount = getOutfitLength(outfit);
-  if (itemCount === 0) return null;
+export function scoreColorHarmony(outfit: Outfit): ColorScoreResult {
+  const items = prepareOutfit(outfit);
+  const harmony = scoreHueHarmony(items);
+  const accent = scoreAccentHierarchy(items);
+  const contrast = scoreLightnessContrast(items);
+  const score =
+    harmony.score * COLOR_SUB_WEIGHTS.harmony +
+    accent.score * COLOR_SUB_WEIGHTS.accent +
+    contrast * COLOR_SUB_WEIGHTS.contrast;
 
-  const target = findTargetWarmth(feelsLike, itemCount);
-  const difference = warmthDifference(outfit, target);
-
-  if (difference === null) return null;
-
-  const maxTolerance = getWarmthTolerance(itemCount);
-  return Math.max(0, 1 - difference / maxTolerance);
-}
-
-// No protection needed or meeting the four-slot wind target earns full points.
-export function scoreWind(outfit: Outfit, windSpeed: number): number {
-  const target = findTargetWind(windSpeed, getOutfitLength(outfit));
-
-  if (target === 0) return 1;
-
-  const totalResistance = getTotalResistance(
-    outfit,
-    (item) => item.windResistance,
-  );
-
-  return Math.min(totalResistance / target, 1);
-}
-
-// Rain and snow use whichever amount is higher to set the four-slot target.
-export function scoreRain(outfit: Outfit, weather: ForecastDetails): number {
-  const precipitation = Math.max(weather.rainVolume, weather.snowVolume);
-  const target = findTargetRain(precipitation, getOutfitLength(outfit));
-
-  if (target === 0) return 1;
-
-  const totalResistance = getTotalResistance(
-    outfit,
-    (item) => item.waterResistance,
-  );
-
-  return Math.min(totalResistance / target, 1);
+  return {
+    score,
+    harmonyScheme: harmony.scheme,
+    vividPieceCount: accent.vividCount,
+  };
 }
 
 export function calculateWeightedScore(
   breakdown: OutfitScoreBreakdown,
-): number | null {
+): number {
   let total = 0;
   // Missing scores are skipped, so only available scores affect the final result.
   let totalWeight = 0;
 
-  for (const [key, weight] of Object.entries(SCORE_WEIGHTS)) {
-    const score = breakdown[key as keyof typeof SCORE_WEIGHTS];
+  for (const [key, weight] of Object.entries(OUTFIT_SCORE_WEIGHTS)) {
+    const entry = breakdown[key as keyof typeof OUTFIT_SCORE_WEIGHTS];
 
-    if (score === null) continue;
+    if (entry === null || entry === undefined) continue;
 
-    total += score * weight;
+    const numericScore = typeof entry === "number" ? entry : entry.score;
+
+    total += numericScore * weight;
     totalWeight += weight;
   }
 
-  if (totalWeight === 0) return null;
+  if (totalWeight === 0) return 0;
 
   return total / totalWeight;
 }

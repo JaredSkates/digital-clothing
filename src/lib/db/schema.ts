@@ -43,14 +43,20 @@ export const ClosetItem = pgTable("ClosetItem", {
   imgUri: text("img_uri").notNull(),
 
   category: categoryEnum("category").notNull(),
-  subCategory: text("sub_category").$type<SubCategory>(),
+  subCategory: text("sub_category").$type<SubCategory>().notNull(),
 
-  colorHex: text("color_hex"),
-  material: closetItemMaterialEnum("material"),
+  colorHex: text("color_hex").notNull(),
+  material: closetItemMaterialEnum("material").notNull(),
   fit: closetItemFitEnum("fit"),
 
-  waterResistance: integer("water_resistance").$type<WeatherResistance>(),
-  windResistance: integer("wind_resistance").$type<WeatherResistance>(),
+  waterResistance: integer("water_resistance")
+    .$type<WeatherResistance>()
+    .notNull()
+    .default(0),
+  windResistance: integer("wind_resistance")
+    .$type<WeatherResistance>()
+    .notNull()
+    .default(0),
 
   formalities: closetItemFormalityEnum("formalities")
     .array()
@@ -59,7 +65,7 @@ export const ClosetItem = pgTable("ClosetItem", {
   styles: closetItemStyleEnum("styles").array().notNull().default([]),
 
   size: text("size"),
-  warmth: integer("warmth").$type<WarmthLevel>(),
+  warmth: integer("warmth").$type<WarmthLevel>().notNull(),
 
   wornCount: integer("worn_count").default(0).notNull(),
   lastWornAt: timestamp("last_worn_at"),
