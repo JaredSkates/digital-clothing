@@ -90,30 +90,24 @@ export const MAX_OUTFIT_SLOTS = 4;
 export const TOP_K = 5;
 
 // ---------- Color OKLCH ----------
-export const NEUTRAL_CHROMA_MAXIMUM = 0.04; // white, grays, black, beige
-export const DARK_NEUTRAL_LIGHTNESS_MAXIMUM = 0.42; // navy, brown, charcoal
-export const DARK_NEUTRAL_CHROMA_MAXIMUM = 0.07;
-
-export const EARTH_TONE_LIGHTNESS_MINIMUM = 0.35; // camel, tan, khaki
-export const EARTH_TONE_HUE_MINIMUM = 40;
-export const EARTH_TONE_HUE_MAXIMUM = 110;
-export const EARTH_TONE_CHROMA_MAXIMUM = 0.09;
-
-export const VIVID_CHROMA_MINIMUM = 0.15; // mustard, rust, red, royal blue
+export const ACHROMATIC_EPSILON = 1e-3;
+export const MUTED_CHROMA_MAX = 0.04;
+export const VIVID_CHROMA_MINIMUM = 0.14;
 
 export const MONOCHROMATIC_MAXIMUM_ARC = 15;
-export const ANALOGOUS_MAXIMUM_ARC = 60;
-export const COMPLEMENTARY_MINIMUM_ANGLE = 150;
-export const COMPLEMENTARY_HUE_TOLERANCE = 30; // also covers split-complementary
-export const TRIADIC_HUE_TOLERANCE = 25;
-
+export const ANALOGOUS_MAXIMUM_ARC = 75; // Increased from ~45° or 60° to capture broader analogous families
+export const COMPLEMENTARY_HUE_TOLERANCE = 25; // Widened tolerance around the anchor poles
+export const TRIADIC_HUE_TOLERANCE = 30; // Widened to allow minor hue shifts in 3-way palettes
+export const TETRADIC_HUE_TOLERANCE = 25; // Tolerance for 4-color double-complementary palettes
 export const HARMONY_SCORE = {
-  neutralAnchored: 0.95,
-  monochromatic: 1,
-  analogous: 1,
-  complementary: 0.9, // "complementary with restraint"
-  triadic: 0.75,
-  unresolved: 0.35,
+  neutralAnchored: 0.8,
+  monochromatic: 1.0,
+  analogous: 0.9,
+  complementary: 0.95,
+  splitComplementary: 0.9,
+  tetradic: 0.85,
+  coordinatedMultiColor: 0.75,
+  unrelated: 0.4,
 };
 // A single vivid piece at or below this area share is a "focal accent".
 export const FOCAL_ACCENT_MAXIMUM_AREA = 0.3;

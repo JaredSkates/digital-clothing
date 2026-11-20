@@ -1,26 +1,16 @@
-import {
-  DARK_NEUTRAL_CHROMA_MAXIMUM,
-  DARK_NEUTRAL_LIGHTNESS_MAXIMUM,
-  EARTH_TONE_CHROMA_MAXIMUM,
-  EARTH_TONE_HUE_MAXIMUM,
-  EARTH_TONE_HUE_MINIMUM,
-  EARTH_TONE_LIGHTNESS_MINIMUM,
-  NEUTRAL_CHROMA_MAXIMUM,
-  VIVID_CHROMA_MINIMUM,
-} from "@/constants/closet";
-import type { ColorRole, OklchColor } from "@/types";
+import { VISUAL_AREA_WEIGHT } from "@/config/weights";
+import { ACHROMATIC_EPSILON, VIVID_CHROMA_MINIMUM } from "@/constants/closet";
+import type {
+  ColorFamily,
+  ColorReadyItem,
+  ColorTrait,
+  OklchColor,
+  Outfit,
+} from "@/types";
 
 export function isValidHexCode(hexCode: string): boolean {
   const cleanedHex = hexCode.trim().replace(/^#/, "");
   return /^([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(cleanedHex);
-}
-
-export function isNeutralColor(color: OklchColor): boolean {
-  return color.chroma < 0.045;
-}
-
-export function isVividColor(color: OklchColor): boolean {
-  return color.chroma >= 0.13;
 }
 
 function normalizeHexToSixDigits(hexCode: string): string {
@@ -155,26 +145,165 @@ export function hexToOklch(hexCode: string): OklchColor {
 
 // ---------- Color roles ----------
 
-// Neutral = what stylists treat as a base color: black, white, grey, beige,
-// plus dark navy / brown / charcoal and warm earth tones (camel, tan, khaki).
-export function classifyColorRole(color: OklchColor): ColorRole {
-  const isPlainNeutral = color.chroma < NEUTRAL_CHROMA_MAXIMUM;
+export function getHueFamily(hue: number): ColorFamily {
+  if (hue < 30) return "red";
+  if (hue < 80) return "orange";
+  if (hue < 114) return "yellow";
+  if (hue < 165) return "green";
+  if (hue < 275) return "blue";
+  if (hue < 330) return "purple";
 
-  const isDarkAndQuiet =
-    color.lightness <= DARK_NEUTRAL_LIGHTNESS_MAXIMUM &&
-    color.chroma < DARK_NEUTRAL_CHROMA_MAXIMUM;
+  return "red";
+}
 
-  const isLightWarmEarthTone =
-    color.lightness >= EARTH_TONE_LIGHTNESS_MINIMUM &&
-    color.hue >= EARTH_TONE_HUE_MINIMUM &&
-    color.hue <= EARTH_TONE_HUE_MAXIMUM &&
-    color.chroma < EARTH_TONE_CHROMA_MAXIMUM;
+function isEarthTone(
+  hue: number,
+  chroma: number,
+  isLight: boolean,
+  isDark: boolean,
+): boolean {
+  const earthMax = isLight || isDark ? 0.07 : 0.14;
 
-  if (isPlainNeutral || isDarkAndQuiet || isLightWarmEarthTone) {
-    return "neutral";
+  return hue >= 30 && hue <= 135 && chroma <= earthMax;
+}
+
+function isNeutralColor(
+  chroma: number,
+  isLight: boolean,
+  isDark: boolean,
+  isEarth: boolean,
+): boolean {
+  if (isEarth) return true;
+  if (isLight && chroma <= 0.04) return true;
+  if (isDark && chroma < 0.08) return true;
+  if (chroma <= 0.03) return true;
+
+  return false;
+}
+
+function isAchromaticColor({
+  isLight,
+  isDark,
+  brightness,
+}: {
+  isLight: boolean;
+  isDark: boolean;
+  brightness: ColorTrait;
+}) {
+  const colorFamily: ColorFamily = isLight
+    ? "white"
+    : isDark
+      ? "black"
+      : "gray";
+
+  const traits: ColorTrait[] = ["achromatic", "neutral", brightness];
+
+  return {
+    colorFamily,
+    label: traits.join("-"),
+    traits,
+  };
+}
+
+function readjustColorFamily({
+  colorFamily,
+  isCool,
+  isWarm,
+  isLight,
+  isEarth,
+  isMuted,
+}: {
+  colorFamily: ColorFamily;
+  isCool: boolean;
+  isWarm: boolean;
+  isLight: boolean;
+  isEarth: boolean;
+  isMuted: boolean;
+}) {
+  if (colorFamily === "red" && isCool) return "purple";
+  if (colorFamily === "purple" && isWarm) return "red";
+
+  if (isEarth && isMuted) {
+    if (colorFamily === "orange" || colorFamily === "yellow") {
+      return isLight ? "beige" : "brown";
+    }
   }
-  if (color.chroma >= VIVID_CHROMA_MINIMUM) {
-    return "vivid";
+
+  return colorFamily;
+}
+
+export function classifyColor(color: OklchColor) {
+  const { lightness, chroma, hue } = color;
+
+  const isLight = lightness >= 0.7;
+  const isDark = lightness <= 0.4;
+
+  const brightness = isLight ? "light" : isDark ? "dark" : "midtone";
+
+  // Achromatic colors. (chroma is near zero)
+  if (chroma <= ACHROMATIC_EPSILON || hue === null) {
+    return isAchromaticColor({ isLight, isDark, brightness });
   }
-  return "muted";
+
+  // Saturation
+  const isVivid = chroma >= VIVID_CHROMA_MINIMUM;
+  const isMuted = !isVivid;
+  const isEarth = isEarthTone(hue, chroma, isLight, isDark);
+  const isNeutral = isNeutralColor(chroma, isLight, isDark, isEarth);
+
+  // Temperature
+  const isWarm = hue <= 120 || hue >= 330;
+  const isCool = hue >= 135 && hue <= 310;
+
+  // Color family
+  let colorFamily: ColorFamily = getHueFamily(hue);
+  colorFamily = readjustColorFamily({
+    colorFamily,
+    isCool,
+    isWarm,
+    isLight,
+    isEarth,
+    isMuted,
+  });
+
+  // Traits
+  const traits: ColorTrait[] = [];
+
+  traits.push(isVivid ? "vivid" : "muted");
+  traits.push(brightness);
+
+  if (isEarth) traits.push("earth");
+  if (isNeutral) traits.push("neutral");
+  if (isWarm) traits.push("warm");
+  if (isCool) traits.push("cool");
+
+  return {
+    colorFamily,
+    label: traits.join("-"),
+    traits,
+  };
+}
+
+export function prepareOutfit(outfit: Outfit): ColorReadyItem[] {
+  const preparedItems: ColorReadyItem[] = [];
+
+  for (const item of Object.values(outfit)) {
+    if (!item || item.category === "accessory") continue;
+
+    const oklch = hexToOklch(item.colorHex);
+    const stats = classifyColor(oklch);
+    const role = stats.traits;
+    const family = stats.colorFamily;
+    const visualAreaWeight = VISUAL_AREA_WEIGHT[item.category] ?? 0;
+
+    preparedItems.push({
+      item,
+      oklch,
+      colorRole: role,
+      colorFamily: family,
+      visualAreaWeight,
+    });
+  }
+
+  return preparedItems;
 }

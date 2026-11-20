@@ -81,18 +81,47 @@ export type OklchColor = {
   chroma: number;
   hue: number;
 };
-export type ColorRole = "neutral" | "muted" | "vivid";
+export type ColorFamily =
+  | "red"
+  | "orange"
+  | "yellow"
+  | "green"
+  | "blue"
+  | "purple"
+  | "black"
+  | "gray"
+  | "white"
+  | "brown"
+  | "beige";
+
+export type ColorTrait =
+  | "achromatic"
+  | "neutral"
+  | "vivid"
+  | "muted"
+  | "light"
+  | "midtone"
+  | "dark"
+  | "earth"
+  | "warm"
+  | "cool";
+export interface ColorClassification {
+  /** e.g. "muted-earth-neutral", "dark-neutral", "vivid" */
+  label: string;
+  colorFamily: ColorFamily;
+  /** All matching descriptors so nothing is lost */
+  traits: ColorTrait[];
+}
 
 export type ColorScoreResult = {
   score: number;
-  harmonyScheme: string;
-  vividPieceCount: number;
 };
 
 export type ColorReadyItem = {
   item: ClosetItemType;
   oklch: OklchColor;
-  colorRole: ColorRole;
+  colorRole: ColorTrait[];
+  colorFamily: ColorFamily;
   visualAreaWeight: number;
 };
 

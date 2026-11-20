@@ -1,14 +1,11 @@
-import { VISUAL_AREA_WEIGHT } from "@/config/weights";
 import { COLD_POINT } from "@/constants/closet";
 import type {
   Category,
   ClosetItemType,
-  ColorReadyItem,
   OccasionPreset,
-  Outfit,
+  Outfit
 } from "@/types";
 import type { ForecastDetails } from "@/types/weather";
-import { classifyColorRole, hexToOklch } from "./color-math";
 
 export function isAllowedForOccasion(
   item: ClosetItemType,
@@ -62,25 +59,4 @@ export function needsOuterwear(weather?: ForecastDetails): boolean | null {
   const wet = weather.precipitationMode !== "no";
 
   return cold || wet;
-}
-
-export function prepareOutfit(outfit: Outfit): ColorReadyItem[] {
-  const preparedItems: ColorReadyItem[] = [];
-
-  for (const item of Object.values(outfit)) {
-    if (!item || item.category === "accessory") continue;
-
-    const oklch = hexToOklch(item.colorHex);
-    const colorRole = classifyColorRole(oklch);
-    const visualAreaWeight = VISUAL_AREA_WEIGHT[item.category] ?? 0;
-
-    preparedItems.push({
-      item,
-      oklch,
-      colorRole,
-      visualAreaWeight,
-    });
-  }
-
-  return preparedItems;
 }

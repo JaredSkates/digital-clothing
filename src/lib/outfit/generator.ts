@@ -25,9 +25,6 @@ export type OutfitContext = {
   weather?: ForecastDetails;
 };
 
-const FREEZING_POINT = 32;
-const MIN_FREEZING_OUTERWEAR_WARMTH = 3;
-
 // hard filters
 function filterEligibleItems(
   items: ClosetItemType[],
