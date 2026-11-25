@@ -1,11 +1,11 @@
-import { VISUAL_AREA_WEIGHT } from "@/config/weights";
-import { ACHROMATIC_EPSILON, VIVID_CHROMA_MINIMUM } from "@/constants/closet";
+import { CFG } from "@/config/weights";
+import { VIVID_CHROMA_MINIMUM } from "@/constants/closet";
 import type {
+  Adjustment,
   ColorFamily,
   ColorReadyItem,
   ColorTrait,
   OklchColor,
-  Outfit,
 } from "@/types";
 
 export function isValidHexCode(hexCode: string): boolean {
@@ -60,32 +60,6 @@ function hexToLinearRgb(hexCode: string): {
     linearGreen: srgbChannelToLinear(greenSrgb),
     linearBlue: srgbChannelToLinear(blueSrgb),
   };
-}
-
-export function calculateShortestHueAngle(
-  firstHue: number,
-  secondHue: number,
-): number {
-  const rawDifference = Math.abs(firstHue - secondHue) % 360;
-  if (rawDifference > 180) {
-    return 360 - rawDifference;
-  }
-  return rawDifference;
-}
-
-// Smallest arc of the color wheel that contains every hue.
-// Example: hues 350 and 10 give 20, not 340.
-export function calculateSmallestArcCoveringHues(hues: number[]): number {
-  if (hues.length <= 1) return 0;
-
-  const sortedHues = [...hues].sort((first, second) => first - second);
-  let largestGap = sortedHues[0] + 360 - sortedHues[sortedHues.length - 1];
-
-  for (let index = 1; index < sortedHues.length; index++) {
-    const gap = sortedHues[index] - sortedHues[index - 1];
-    if (gap > largestGap) largestGap = gap;
-  }
-  return 360 - largestGap;
 }
 
 export function hexToOklch(hexCode: string): OklchColor {
@@ -143,7 +117,70 @@ export function hexToOklch(hexCode: string): OklchColor {
   };
 }
 
-// ---------- Color roles ----------
+// ============================ Roles & Families ============================
+
+export function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value));
+}
+export function round2(value: number): number {
+  return Number(value.toFixed(2));
+}
+export function sumDeltas(adjustments: Adjustment[]): number {
+  return adjustments.reduce((total, adj) => total + adj.delta, 0);
+}
+export function hueGap(a: number, b: number): number {
+  const diff = Math.abs(a - b) % 360;
+  return diff > 180 ? 360 - diff : diff;
+}
+const DEG_TO_RAD = Math.PI / 180;
+
+export function scoreHueDistance(deg: number): number {
+  const rad = deg * DEG_TO_RAD;
+
+  // this is different from the main base score as hue distance works best with two hues
+  // With the bonus is should add up close to the main base score
+  const BaseScore = 0.7;
+  // 1. Small bonus for colors that are close to the exact same color (peaks at 0°)
+  const sameColorBonus = 0.05 * Math.cos(rad);
+  // 2. Bigger bonus for colors at the two extremes: exact match (0°) OR total opposite (180°)
+  //    (Automatically punishes awkward in-between colors around 90° or pi/2)
+  const matchOrOppositeBonus = 0.2 * Math.cos(2 * rad);
+
+  const totalScore = BaseScore + sameColorBonus + matchOrOppositeBonus;
+  return clamp01(totalScore);
+}
+export function getLightnessSpread(items: ColorReadyItem[]): number {
+  if (items.length < 2) return 0;
+  const values = items.map((item) => item.oklch.lightness);
+  return Math.max(...values) - Math.min(...values);
+}
+
+// three hues spread evenly around the wheel (~120 degrees apart)
+export function isTriadic(hues: number[]) {
+  if (hues.length !== 3) return false;
+  const [h1, h2, h3] = hues;
+  const gaps = [hueGap(h1, h2), hueGap(h1, h3), hueGap(h2, h3)];
+
+  return gaps.every((gap) => Math.abs(gap - 120) <= CFG.triadicTolerance);
+}
+export function isSplitComplementary(hues: number[]): boolean {
+  if (hues.length !== 3) return false;
+
+  const [h1, h2, h3] = hues;
+  const from1to2 = hueGap(h1, h2);
+  const from1to3 = hueGap(h1, h3);
+  const from2to3 = hueGap(h2, h3);
+
+  const nearTarget = (gap: number) => Math.abs(gap - 150) <= 35;
+
+  // Check each hue in turn as the base hue (two ~150° gaps from it).
+  const h1IsBase = nearTarget(from1to2) && nearTarget(from1to3);
+  const h2IsBase = nearTarget(from1to2) && nearTarget(from2to3);
+  const h3IsBase = nearTarget(from1to3) && nearTarget(from2to3);
+
+  return h1IsBase || h2IsBase || h3IsBase;
+}
+// ----- helper functions -------
 
 export function getHueFamily(hue: number): ColorFamily {
   if (hue < 30) return "red";
@@ -155,47 +192,40 @@ export function getHueFamily(hue: number): ColorFamily {
 
   return "red";
 }
-
 function isEarthTone(
   hue: number,
   chroma: number,
   isLight: boolean,
   isDark: boolean,
 ): boolean {
-  const earthMax = isLight || isDark ? 0.07 : 0.14;
+  const earthMax = isLight || isDark ? 0.07 : 0.11;
 
   return hue >= 30 && hue <= 135 && chroma <= earthMax;
 }
-
 function isNeutralColor(
   chroma: number,
   isLight: boolean,
   isDark: boolean,
   isEarth: boolean,
+  isCool: boolean,
 ): boolean {
-  if (isEarth) return true;
-  if (isLight && chroma <= 0.04) return true;
-  if (isDark && chroma < 0.08) return true;
-  if (chroma <= 0.03) return true;
+  if (chroma <= 0.035) return true; // near-gray
+  if (isLight && chroma <= 0.05) return true; // cream, off-white
+  if (isEarth) return true; // brown, tan, khaki (already chroma-capped)
+  if (isDark && isCool && chroma <= 0.09) return true; // navy, charcoal-blue
+  if (isDark && chroma <= 0.04) return true; // near-black
 
   return false;
 }
-
 function isAchromaticColor({
-  isLight,
-  isDark,
+  lightness,
   brightness,
 }: {
-  isLight: boolean;
-  isDark: boolean;
+  lightness: number;
   brightness: ColorTrait;
 }) {
-  const colorFamily: ColorFamily = isLight
-    ? "white"
-    : isDark
-      ? "black"
-      : "gray";
-
+  const colorFamily: ColorFamily =
+    lightness >= 0.9 ? "white" : lightness < 0.3 ? "black" : "gray";
   const traits: ColorTrait[] = ["achromatic", "neutral", brightness];
 
   return {
@@ -204,7 +234,6 @@ function isAchromaticColor({
     traits,
   };
 }
-
 function readjustColorFamily({
   colorFamily,
   isCool,
@@ -231,29 +260,30 @@ function readjustColorFamily({
 
   return colorFamily;
 }
+// -----------------------------
 
 export function classifyColor(color: OklchColor) {
   const { lightness, chroma, hue } = color;
 
-  const isLight = lightness >= 0.7;
+  const isLight = lightness >= 0.73;
   const isDark = lightness <= 0.4;
 
   const brightness = isLight ? "light" : isDark ? "dark" : "midtone";
 
   // Achromatic colors. (chroma is near zero)
-  if (chroma <= ACHROMATIC_EPSILON || hue === null) {
-    return isAchromaticColor({ isLight, isDark, brightness });
+  if (chroma <= 0.02 || hue === null) {
+    return isAchromaticColor({ lightness, brightness });
   }
+
+  // Temperature
+  const isWarm = hue <= 120 || hue >= 330;
+  const isCool = hue >= 135 && hue <= 310;
 
   // Saturation
   const isVivid = chroma >= VIVID_CHROMA_MINIMUM;
   const isMuted = !isVivid;
   const isEarth = isEarthTone(hue, chroma, isLight, isDark);
-  const isNeutral = isNeutralColor(chroma, isLight, isDark, isEarth);
-
-  // Temperature
-  const isWarm = hue <= 120 || hue >= 330;
-  const isCool = hue >= 135 && hue <= 310;
+  const isNeutral = isNeutralColor(chroma, isLight, isDark, isEarth, isCool);
 
   // Color family
   let colorFamily: ColorFamily = getHueFamily(hue);
@@ -282,28 +312,4 @@ export function classifyColor(color: OklchColor) {
     label: traits.join("-"),
     traits,
   };
-}
-
-export function prepareOutfit(outfit: Outfit): ColorReadyItem[] {
-  const preparedItems: ColorReadyItem[] = [];
-
-  for (const item of Object.values(outfit)) {
-    if (!item || item.category === "accessory") continue;
-
-    const oklch = hexToOklch(item.colorHex);
-    const stats = classifyColor(oklch);
-    const role = stats.traits;
-    const family = stats.colorFamily;
-    const visualAreaWeight = VISUAL_AREA_WEIGHT[item.category] ?? 0;
-
-    preparedItems.push({
-      item,
-      oklch,
-      colorRole: role,
-      colorFamily: family,
-      visualAreaWeight,
-    });
-  }
-
-  return preparedItems;
 }

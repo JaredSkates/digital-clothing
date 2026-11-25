@@ -1,154 +1,302 @@
-import { ColorReadyItem } from "@/types";
+import { CFG } from "@/config/weights";
+import type {
+  Adjustment,
+  ColorHarmonyOptions,
+  ColorReadyItem,
+  ColorScheme,
+  ColorScoreResult,
+  Outfit,
+} from "@/types";
 import {
-  ACCENT_SCORE,
-  ANALOGOUS_MAXIMUM_ARC,
-  COMPLEMENTARY_HUE_TOLERANCE,
-  COMPLEMENTARY_MINIMUM_ANGLE,
-  FOCAL_ACCENT_MAXIMUM_AREA,
-  HARMONY_SCORE,
-  LIGHTNESS_SCORE,
-  LIGHTNESS_SPREAD,
-  MONOCHROMATIC_MAXIMUM_ARC,
-  TRIADIC_HUE_TOLERANCE,
-} from "../../constants/closet";
-import {
-  calculateShortestHueAngle,
-  calculateSmallestArcCoveringHues,
-} from "../../utils/color-math";
+  clamp01,
+  classifyColor,
+  getLightnessSpread,
+  hexToOklch,
+  hueGap,
+  isSplitComplementary,
+  isTriadic,
+  round2,
+  scoreHueDistance,
+  sumDeltas,
+} from "@/utils/color-math";
 
-// ---------- Hue harmony ----------
+/* ============================================================================
+ * Color harmony scorer
+ *   1. PREPARE      OKLCH + classification + visual weight per piece
+ *   2. SPLIT        achromatics (white/gray/black) vs chromatic pieces
+ *   3. CLUSTER      group chromatic hues that read as "the same color"
+ *   4. NAME + BASE  name the scheme, score it with one smooth hue curve
+ *   5. ADJUST       vivid count, light/dark contrast, neutral anchor, taste
+ *   6. RESULT       { score, scheme, notes[], breakdown }
+ *
+ * Every number you may want to tune is in CFG (@/config/weights).
+ * ========================================================================== */
 
-function areAllHuesNearAnyAnchor(
-  hues: number[],
-  anchorHues: number[],
-  toleranceDegrees: number,
-): boolean {
-  return hues.every((hue) =>
-    anchorHues.some(
-      (anchorHue) =>
-        calculateShortestHueAngle(hue, anchorHue) <= toleranceDegrees,
+/* ------------------------------- 1. PREPARE ------------------------------- */
+
+const hasTrait = (
+  object: ColorReadyItem,
+  trait: ColorReadyItem["colorRole"][number],
+) => object.colorRole.includes(trait);
+
+const isVividPiece = (piece: ColorReadyItem) => hasTrait(piece, "vivid");
+
+export function prepareOutfit(outfit: Outfit): ColorReadyItem[] {
+  const preparedItems: ColorReadyItem[] = [];
+
+  for (const item of Object.values(outfit)) {
+    if (!item || item.category === "accessory" || !item.colorHex) continue;
+
+    const oklch = hexToOklch(item.colorHex);
+    const { colorFamily, traits } = classifyColor(oklch);
+    const visualWeight = CFG.visualWeight[item.category] ?? CFG.fallbackWeight;
+
+    preparedItems.push({
+      item,
+      oklch,
+      colorFamily,
+      colorRole: traits,
+      visualWeight,
+    });
+  }
+
+  // bring the biggest visual weights towards the front
+  return preparedItems.sort((a, b) => b.visualWeight - a.visualWeight);
+}
+
+/* ------------------------------- 2. SPLIT --------------------------------- */
+
+// Only true achromatics (white, gray, black) stay off the wheel.
+// Navy, brown, tan etc. keep their hue and get clustered.
+function separateAchromatics(outfit: ColorReadyItem[]) {
+  const achromatics = outfit.filter((p) => hasTrait(p, "achromatic"));
+  const chromatics = outfit.filter((p) => !hasTrait(p, "achromatic"));
+  return { achromatics, chromatics };
+}
+
+/* ------------------------------- 3. CLUSTER ------------------------------- */
+
+// One hue per cluster. A piece joins a cluster if it is within `tolerance` degrees
+export function getHueClusters(
+  chromatics: ColorReadyItem[],
+  tolerance = CFG.clusterTolerance,
+) {
+  const hues: number[] = [];
+
+  for (const { oklch } of chromatics) {
+    const belongsToCluster = hues.some(
+      (h) => hueGap(h, oklch.hue) <= tolerance,
+    );
+    if (!belongsToCluster) hues.push(oklch.hue);
+  }
+
+  return hues;
+}
+
+/* ------------------------------ 4. NAME + BASE ----------------------------- */
+
+function getBaseScheme(
+  clusters: number[],
+  achromatics: ColorReadyItem[],
+  chromatics: ColorReadyItem[],
+  notes: string[],
+): { scheme: ColorScheme; base: number } {
+  // no hue clusters
+  if (clusters.length === 0) {
+    notes.push("All-neutral palette.");
+    return { scheme: "neutral", base: CFG.baseScore };
+  }
+
+  // 1. one hue
+  if (clusters.length === 1) {
+    const isAccent = chromatics.length === 1 && achromatics.length > 0;
+
+    notes.push(
+      isAccent
+        ? `Neutral base accented by ${chromatics[0].colorFamily}.`
+        : "Single hue with varying lightness and chroma.",
+    );
+
+    return {
+      scheme: isAccent ? "accented-neutral" : "monochromatic",
+      base: CFG.baseScore,
+    };
+  }
+
+  // 2. two hues
+  if (clusters.length === 2) {
+    const gap = hueGap(clusters[0], clusters[1]);
+    const base = scoreHueDistance(gap);
+
+    if (gap <= CFG.analogousMaxGap) {
+      notes.push("Colors sit close together on the wheel.");
+      return { scheme: "analogous", base };
+    }
+
+    if (gap >= CFG.complementaryMinGap) {
+      notes.push("Colors sit across from each other for contrast.");
+      return { scheme: "complementary", base };
+    }
+
+    notes.push("Multiple hues clash or compete.");
+    return { scheme: "busy", base };
+  }
+
+  // 3. three or more hues: check the named schemes first
+  if (isTriadic(clusters)) {
+    notes.push("Three colors spaced evenly around the wheel.");
+    return { scheme: "triadic", base: CFG.baseScore };
+  }
+
+  if (isSplitComplementary(clusters)) {
+    notes.push("One base color, plus two colors beside its complement.");
+    return {
+      scheme: "split-complementary",
+      base: CFG.baseScore,
+    };
+  }
+
+  // 3+ clusters fallback: judged by the widest gap
+  const maxGap = Math.max(
+    ...clusters.flatMap((h1, i) =>
+      clusters.slice(i + 1).map((h2) => hueGap(h1, h2)),
     ),
   );
+  const base = scoreHueDistance(maxGap);
+
+  if (maxGap <= CFG.analogousMaxGap) {
+    notes.push("Colors sit close together on the wheel.");
+    return { scheme: "analogous", base };
+  }
+
+  notes.push("Multiple hues clash or compete.");
+  return { scheme: "busy", base };
 }
 
-function isComplementaryOrSplitComplementary(hues: number[]): boolean {
-  for (let firstIndex = 0; firstIndex < hues.length; firstIndex++) {
-    for (
-      let secondIndex = firstIndex + 1;
-      secondIndex < hues.length;
-      secondIndex++
-    ) {
-      const angleBetween = calculateShortestHueAngle(
-        hues[firstIndex],
-        hues[secondIndex],
-      );
-      if (angleBetween < COMPLEMENTARY_MINIMUM_ANGLE) continue;
+/* ------------------------------ 5. ADJUST/NOTES ---------------------------- */
 
-      const hasOnlyTwoHueFamilies = areAllHuesNearAnyAnchor(
-        hues,
-        [hues[firstIndex], hues[secondIndex]],
-        COMPLEMENTARY_HUE_TOLERANCE,
-      );
-      if (hasOnlyTwoHueFamilies) return true;
-    }
-  }
-  return false;
-}
+function applyAdjustments(
+  preparedOutfit: ColorReadyItem[],
+  hueCount: number,
+  hasAchromatics: boolean,
+  options: ColorHarmonyOptions,
+  notes: string[],
+): Adjustment[] {
+  const adjustments: Adjustment[] = [];
+  const mood = options.colorMood ?? "balanced";
+  const vividCount = preparedOutfit.filter(
+    (item) => isVividPiece(item) && item.visualWeight >= 0.3, // e.g., tops, bottoms, dresses, coats
+  ).length;
 
-function isTriadic(hues: number[]): boolean {
-  if (hues.length < 3) return false;
-
-  return hues.some((startingHue) => {
-    const anchors = [
-      startingHue,
-      (startingHue + 120) % 360,
-      (startingHue + 240) % 360,
-    ];
-    const everyHueFits = areAllHuesNearAnyAnchor(
-      hues,
-      anchors,
-      TRIADIC_HUE_TOLERANCE,
-    );
-    const everyAnchorUsed = anchors.every((anchor) =>
-      hues.some(
-        (hue) =>
-          calculateShortestHueAngle(hue, anchor) <= TRIADIC_HUE_TOLERANCE,
-      ),
-    );
-    return everyHueFits && everyAnchorUsed;
-  });
-}
-
-export function scoreHueHarmony(items: ColorReadyItem[]): {
-  score: number;
-  scheme: string;
-} {
-  const chromaticHues = items
-    .filter((entry) => entry.colorRole !== "neutral")
-    .map((entry) => entry.oklch.hue);
-
-  if (chromaticHues.length <= 1) {
-    return {
-      score: HARMONY_SCORE.neutralAnchored,
-      scheme: "neutral base with at most one color",
-    };
-  }
-
-  const smallestArc = calculateSmallestArcCoveringHues(chromaticHues);
-
-  if (smallestArc <= MONOCHROMATIC_MAXIMUM_ARC) {
-    return { score: HARMONY_SCORE.monochromatic, scheme: "monochromatic" };
-  }
-  if (smallestArc <= ANALOGOUS_MAXIMUM_ARC) {
-    return { score: HARMONY_SCORE.analogous, scheme: "analogous" };
-  }
-  if (isComplementaryOrSplitComplementary(chromaticHues)) {
-    return { score: HARMONY_SCORE.complementary, scheme: "complementary" };
-  }
-  if (isTriadic(chromaticHues)) {
-    return { score: HARMONY_SCORE.triadic, scheme: "triadic" };
-  }
-  return { score: HARMONY_SCORE.unresolved, scheme: "unrelated hues" };
-}
-
-// ---------- Accent hierarchy (one statement piece, not five) ----------
-
-export function scoreAccentHierarchy(items: ColorReadyItem[]): {
-  score: number;
-  vividCount: number;
-} {
-  const vividItems = items.filter((entry) => entry.colorRole === "vivid");
-
-  if (vividItems.length === 0) {
-    return { score: ACCENT_SCORE.noVividPieces, vividCount: 0 };
-  }
-  if (vividItems.length === 1) {
-    const isSmallEnoughToBeAccent =
-      vividItems[0].visualAreaWeight <= FOCAL_ACCENT_MAXIMUM_AREA;
-    return {
-      score: isSmallEnoughToBeAccent
-        ? ACCENT_SCORE.focalAccent
-        : ACCENT_SCORE.largeVividPiece,
-      vividCount: 1,
-    };
-  }
-  if (vividItems.length === 2) {
-    return { score: ACCENT_SCORE.twoVividPieces, vividCount: 2 };
-  }
-  return {
-    score: ACCENT_SCORE.threeOrMoreVividPieces,
-    vividCount: vividItems.length,
+  const add = (label: string, delta: number, note?: string) => {
+    adjustments.push({ label, delta });
+    if (note) notes.push(note);
   };
+
+  if (hueCount === 1 && hasAchromatics && vividCount === 1) {
+    add(
+      "Color pop",
+      CFG.adjust.colorPop,
+      "One color stands out against neutrals.",
+    );
+  }
+
+  if (vividCount >= CFG.threshold.tooManyVivid) {
+    add(
+      "Too many vivid pieces",
+      CFG.adjust.tooManyVivid,
+      "Several bright pieces compete.",
+    );
+  }
+
+  if (getLightnessSpread(preparedOutfit) >= CFG.threshold.contrastSpread) {
+    add("Good light/dark contrast", CFG.adjust.goodContrast);
+  }
+
+  if (hueCount >= 2 && hasAchromatics) {
+    add(
+      "Neutral balance",
+      CFG.adjust.neutralBalance,
+      "Neutrals tie the colors together.",
+    );
+  }
+
+  if (mood === "calm" && vividCount >= CFG.threshold.calmMoodVivid) {
+    add("Bright for a calm mood", CFG.adjust.calmButBright);
+  } else if (mood === "bold" && vividCount >= 1) {
+    add("Fits a bold mood", CFG.adjust.boldMood);
+  }
+
+  return adjustments;
 }
 
-// ---------- Light/dark contrast ----------
+/* --------------------------------- PUBLIC ---------------------------------- */
 
-export function scoreLightnessContrast(items: ColorReadyItem[]): number {
-  const lightnessValues = items.map((entry) => entry.oklch.lightness);
-  const spread = Math.max(...lightnessValues) - Math.min(...lightnessValues);
+/**
+ * Scores how well the colors of a whole outfit work together (0 to 1).
+ * Returns `score: null` when no piece has a usable color, so callers can skip
+ * it instead of counting it as a zero. Accessories are excluded (see prepareOutfit).
+ */
+export function scoreColorHarmony(
+  outfit: Outfit,
+  options: ColorHarmonyOptions = {},
+): ColorScoreResult {
+  const preparedOutfit = prepareOutfit(outfit);
 
-  if (spread < LIGHTNESS_SPREAD.flatBelow) return LIGHTNESS_SCORE.flat;
-  if (spread < LIGHTNESS_SPREAD.subtleBelow) return LIGHTNESS_SCORE.subtle;
-  if (spread <= LIGHTNESS_SPREAD.idealUpTo) return LIGHTNESS_SCORE.ideal;
-  return LIGHTNESS_SCORE.stark;
+  if (preparedOutfit.length === 0) {
+    return {
+      score: null,
+      scheme: null,
+      notes: [],
+      breakdown: {
+        base: 0,
+        adjustments: [],
+        clusters: [],
+        achromatic: [],
+        chromatic: [],
+      },
+    };
+  }
+
+  // 1. split achromatics and chromatics
+  const { achromatics, chromatics } = separateAchromatics(preparedOutfit);
+
+  // 2. cluster chromatic hues
+  const clusters = getHueClusters(chromatics);
+
+  // 3. name the scheme and get the base score
+  const notes: string[] = [];
+  const { scheme, base } = getBaseScheme(
+    clusters,
+    achromatics,
+    chromatics,
+    notes,
+  );
+
+  // 4. apply contrast, vividness, and taste adjustments
+  const adjustments = applyAdjustments(
+    preparedOutfit,
+    clusters.length,
+    achromatics.length > 0,
+    options,
+    notes,
+  );
+
+  // 5. result (bonuses are capped, penalties are not)
+  const score = clamp01(
+    round2(base + Math.min(sumDeltas(adjustments), CFG.adjust.maxBonus)),
+  );
+
+  return {
+    score,
+    scheme,
+    notes,
+    breakdown: {
+      base: round2(base),
+      adjustments,
+      clusters,
+      achromatic: achromatics.map((p) => p.item.category),
+      chromatic: chromatics.map((p) => p.item.category),
+    },
+  };
 }

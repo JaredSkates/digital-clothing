@@ -67,7 +67,7 @@ export type OccasionType =
   | "party"
   | "gym";
 
-export type OccasionPreset = {
+export type OccasionProfile = {
   id: OccasionType;
   name: string;
   bannedSubCategories: SubCategory[];
@@ -112,17 +112,43 @@ export interface ColorClassification {
   /** All matching descriptors so nothing is lost */
   traits: ColorTrait[];
 }
-
-export type ColorScoreResult = {
-  score: number;
-};
-
 export type ColorReadyItem = {
   item: ClosetItemType;
   oklch: OklchColor;
   colorRole: ColorTrait[];
   colorFamily: ColorFamily;
-  visualAreaWeight: number;
+  visualWeight: number;
+};
+
+export type ColorMood = "calm" | "balanced" | "bold";
+
+export type ColorScheme =
+  | "neutral"
+  | "monochromatic"
+  | "accented-neutral"
+  | "analogous"
+  | "complementary"
+  | "triadic"
+  | "split-complementary"
+  | "busy";
+
+export type ColorHarmonyOptions = {
+  colorMood?: ColorMood;
+};
+
+export type Adjustment = { label: string; delta: number };
+
+export type ColorScoreResult = {
+  score: number | null;
+  scheme: ColorScheme | null;
+  notes: string[];
+  breakdown: {
+    base: number;
+    adjustments: Adjustment[];
+    clusters: number[];
+    achromatic: string[];
+    chromatic: string[];
+  };
 };
 
 // ---------------------------------------

@@ -2,7 +2,7 @@ import { TOP_K } from "@/constants/closet";
 import type {
   Category,
   ClosetItemType,
-  OccasionPreset,
+  OccasionProfile,
   Outfit,
   ScoredOutfit,
 } from "@/types";
@@ -13,15 +13,12 @@ import {
   isAllowedForOccasion,
   needsOuterwear,
 } from "../../utils/outfit-helper";
-import {
-  calculateWeightedScore,
-  scoreColorHarmony,
-  scorePreference,
-  scoreWeatherProtection,
-} from "./outfit-scorer";
+import { scoreColorHarmony } from "./color-scoring";
+import { calculateWeightedScore, scorePreference } from "./outfit-scorer";
+import { scoreWeatherProtection } from "./weather-scoring";
 
 export type OutfitContext = {
-  occasion: OccasionPreset;
+  occasion: OccasionProfile;
   weather?: ForecastDetails;
 };
 
@@ -102,7 +99,7 @@ export function generateOutfits(
 // filter, create, score, and rank
 export function rankOutfits(
   items: ClosetItemType[],
-  occasion: OccasionPreset,
+  occasion: OccasionProfile,
   weather?: ForecastDetails,
 ) {
   const context: OutfitContext = { weather, occasion };
@@ -110,15 +107,17 @@ export function rankOutfits(
   if (eligibleItems.length === 0) return [];
 
   const closet = groupByCategory(eligibleItems);
-  return generateOutfits(closet, context)
+  const ranked = generateOutfits(closet, context)
     .map((outfit) => scoreOutfit(outfit, context))
     .filter((candidate) => candidate.score !== null)
     .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+
+  return ranked;
 }
 
 export function recommendBestOutfit(
   items: ClosetItemType[],
-  occasion: OccasionPreset,
+  occasion: OccasionProfile,
   weather?: ForecastDetails,
 ): Outfit | null {
   const ranked = rankOutfits(items, occasion, weather);

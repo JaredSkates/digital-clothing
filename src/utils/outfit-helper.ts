@@ -2,14 +2,14 @@ import { COLD_POINT } from "@/constants/closet";
 import type {
   Category,
   ClosetItemType,
-  OccasionPreset,
-  Outfit
+  OccasionProfile,
+  Outfit,
 } from "@/types";
 import type { ForecastDetails } from "@/types/weather";
 
 export function isAllowedForOccasion(
   item: ClosetItemType,
-  occasion?: OccasionPreset,
+  occasion?: OccasionProfile,
 ): boolean {
   if (!occasion || !item.subCategory) return true;
 

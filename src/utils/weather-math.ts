@@ -1,4 +1,4 @@
-import { REGION_WEIGHTS } from "@/config/weights";
+import { BODY_WARMTH_WEIGHTS } from "@/config/weights";
 import { COLD_FALLOFF, HOT_FALLOFF } from "@/constants/closet";
 import type { ClosetItemType, Outfit, RegionValues } from "@/types";
 
@@ -37,23 +37,17 @@ export function scoreRegions(
   protection: RegionValues,
   target: number,
   warmth: boolean,
+  weights: RegionValues = BODY_WARMTH_WEIGHTS,
 ): number {
-  if (target === 0) return 1;
+  if (target === 0 && !warmth) return 1;
 
-  if (warmth === true) {
-    return (
-      scoreWarmthDifference(protection.upperBody, target) *
-        REGION_WEIGHTS.upperBody +
-      scoreWarmthDifference(protection.lowerBody, target) *
-        REGION_WEIGHTS.lowerBody +
-      scoreWarmthDifference(protection.feet, target) * REGION_WEIGHTS.feet
-    );
-  }
+  const score = (value: number) =>
+    warmth ? scoreWarmthDifference(value, target) : Math.min(value / target, 1);
 
   return (
-    Math.min(protection.upperBody / target, 1) * REGION_WEIGHTS.upperBody +
-    Math.min(protection.lowerBody / target, 1) * REGION_WEIGHTS.lowerBody +
-    Math.min(protection.feet / target, 1) * REGION_WEIGHTS.feet
+    score(protection.upperBody) * weights.upperBody +
+    score(protection.lowerBody) * weights.lowerBody +
+    score(protection.feet) * weights.feet
   );
 }
 
@@ -70,28 +64,17 @@ export function getWarmth(outfit: Outfit): RegionValues {
   };
 }
 
-export function getWindResistance(outfit: Outfit): RegionValues {
-  const resistance = (item: ClosetItemType | undefined) =>
-    item?.windResistance ?? 0;
+type ProtectionKey = "windResistance" | "waterResistance";
+
+export function getProtectionValues(
+  outfit: Outfit,
+  key: ProtectionKey,
+): RegionValues {
+  const value = (item: ClosetItemType | undefined) => item?.[key] ?? 0;
 
   return {
-    upperBody: resistance(outfit.outerwear ?? outfit.top ?? outfit.onePiece),
-
-    lowerBody: resistance(outfit.bottom ?? outfit.onePiece),
-
-    feet: resistance(outfit.footwear),
-  };
-}
-
-export function getWaterResistance(outfit: Outfit): RegionValues {
-  const resistance = (item: ClosetItemType | undefined) =>
-    item?.waterResistance ?? 0;
-
-  return {
-    upperBody: resistance(outfit.outerwear ?? outfit.top ?? outfit.onePiece),
-
-    lowerBody: resistance(outfit.bottom ?? outfit.onePiece),
-
-    feet: resistance(outfit.footwear),
+    upperBody: value(outfit.outerwear) + value(outfit.top ?? outfit.onePiece),
+    lowerBody: value(outfit.bottom ?? outfit.onePiece),
+    feet: value(outfit.footwear),
   };
 }

@@ -1,4 +1,4 @@
-import type { NewClosetItemType, OccasionPreset, SubCategory } from "@/types";
+import type { NewClosetItemType, OccasionProfile, SubCategory } from "@/types";
 
 export const SUBCATEGORY_DEFAULTS: Partial<
   Record<
@@ -50,7 +50,7 @@ export const SUBCATEGORY_DEFAULTS: Partial<
   },
 };
 
-export const OCCASION_PRESETS: OccasionPreset[] = [
+export const OCCASION_PRESETS: OccasionProfile[] = [
   {
     id: "everyday",
     name: "Everyday",
@@ -94,7 +94,7 @@ export const OCCASION_PRESETS: OccasionPreset[] = [
   {
     id: "interview",
     name: "Interview",
-    bannedSubCategories: ["shorts", "leggings"],
+    bannedSubCategories: ["shorts", "leggings", "sandals"],
     preferredFormalities: ["business-casual", "formal"],
     preferredStyles: ["minimalist", "preppy"],
   },

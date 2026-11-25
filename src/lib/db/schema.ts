@@ -1,6 +1,6 @@
 // db/schema.ts
 import {
-  OccasionPreset,
+  OccasionProfile,
   SubCategory,
   WarmthLevel,
   WeatherResistance,
@@ -78,7 +78,7 @@ export const ClosetItem = pgTable("ClosetItem", {
 export const SavedOutfit = pgTable("SavedOutfit", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull().unique(),
-  occasion: text("occasion").$type<OccasionPreset>(),
+  occasion: text("occasion").$type<OccasionProfile>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

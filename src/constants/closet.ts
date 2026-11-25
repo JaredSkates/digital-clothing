@@ -11,6 +11,7 @@ export const CATEGORIES = [
 export const SUB_CATEGORIES = {
   top: [
     "t-shirt",
+    "polo",
     "long-sleeve",
     "blouse",
     "button-down",
@@ -80,58 +81,22 @@ export const MATERIALS = [
   "denim",
   "linen",
   "wool",
+  "corduroy",
   "leather",
+  "suede",
   "synthetic",
   "other",
 ] as const;
 
 export const COLD_POINT = 65;
-export const MAX_OUTFIT_SLOTS = 4;
-export const TOP_K = 5;
-
-// ---------- Color OKLCH ----------
-export const ACHROMATIC_EPSILON = 1e-3;
-export const MUTED_CHROMA_MAX = 0.04;
-export const VIVID_CHROMA_MINIMUM = 0.14;
-
-export const MONOCHROMATIC_MAXIMUM_ARC = 15;
-export const ANALOGOUS_MAXIMUM_ARC = 75; // Increased from ~45° or 60° to capture broader analogous families
-export const COMPLEMENTARY_HUE_TOLERANCE = 25; // Widened tolerance around the anchor poles
-export const TRIADIC_HUE_TOLERANCE = 30; // Widened to allow minor hue shifts in 3-way palettes
-export const TETRADIC_HUE_TOLERANCE = 25; // Tolerance for 4-color double-complementary palettes
-export const HARMONY_SCORE = {
-  neutralAnchored: 0.8,
-  monochromatic: 1.0,
-  analogous: 0.9,
-  complementary: 0.95,
-  splitComplementary: 0.9,
-  tetradic: 0.85,
-  coordinatedMultiColor: 0.75,
-  unrelated: 0.4,
-};
-// A single vivid piece at or below this area share is a "focal accent".
-export const FOCAL_ACCENT_MAXIMUM_AREA = 0.3;
-export const ACCENT_SCORE = {
-  noVividPieces: 0.85, // calm tonal outfit
-  focalAccent: 1,
-  largeVividPiece: 0.8,
-  twoVividPieces: 0.65,
-  threeOrMoreVividPieces: 0.4,
-};
-
-// Contrast between the lightest and darkest piece.
-export const LIGHTNESS_SPREAD = {
-  flatBelow: 0.15,
-  subtleBelow: 0.3,
-  idealUpTo: 0.7,
-};
-export const LIGHTNESS_SCORE = {
-  flat: 0.45,
-  subtle: 0.7,
-  ideal: 1,
-  stark: 0.85,
-};
 
 // Steps off target at which the score reaches 0.
 export const COLD_FALLOFF = 3; // underdressed: steeper
 export const HOT_FALLOFF = 4; // overdressed: more forgiving
+
+export const MAX_OUTFIT_SLOTS = 4;
+export const TOP_K = 8;
+
+// ---------- Color OKLCH ----------
+export const MUTED_CHROMA_MAX = 0.04;
+export const VIVID_CHROMA_MINIMUM = 0.12;
